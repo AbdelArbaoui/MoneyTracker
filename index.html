@@ -1,0 +1,3703 @@
+<!DOCTYPE html>
+<html lang="fr" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Money Tracker — Démo Interactive</title>
+  <!-- SEO & UI Meta -->
+  <meta name="description" content="Démonstration interactive hors-ligne de Money Tracker. Suivez vos comptes, investissements et abonnements locaux.">
+  <meta name="robots" content="noindex, nofollow">
+  <!-- Fonts & Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block" rel="stylesheet" />
+  
+  <!-- Tailwind CSS Play CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            surface: '#061426',
+            'surface-container': '#0c192d',
+            'surface-container-high': '#12233c',
+            'surface-container-highest': '#1a2e4c',
+            primary: '#4cd6fb',
+            'primary-container': '#123040',
+            'on-primary': '#061426',
+            secondary: '#a855f7',
+            'on-surface': '#d6e3fe',
+            'on-surface-variant': '#8ca3c7',
+            outline: '#384f6e',
+            'outline-variant': '#263b57',
+            tertiary: '#f43f5e',
+            'tertiary-container': '#47141f',
+          },
+          fontFamily: {
+            sans: ['Plus Jakarta Sans', 'sans-serif'],
+            data: ['Plus Jakarta Sans', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    /* Premium Ambient Glow Blobs */
+    body {
+      background-color: #061426;
+      color: #d6e3fe;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      overflow-x: hidden;
+    }
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 70% 55% at 12% 8%, rgba(76, 214, 251, 0.07) 0%, transparent 60%),
+        radial-gradient(ellipse 55% 45% at 88% 85%, rgba(0, 113, 227, 0.06) 0%, transparent 55%),
+        radial-gradient(ellipse 40% 35% at 60% 40%, rgba(255, 183, 125, 0.03) 0%, transparent 50%);
+      pointer-events: none;
+      z-index: 0;
+    }
+    main {
+      position: relative;
+      z-index: 10;
+    }
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      vertical-align: middle;
+      line-height: 1;
+    }
+    .fill-icon {
+      font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }
+    /* Scrollbar customization */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #061426; }
+    ::-webkit-scrollbar-thumb { background: #1d2a3e; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #263b57; }
+
+    /* Glassmorphism Classes */
+    .glass {
+      backdrop-filter: blur(18px) saturate(160%);
+      -webkit-backdrop-filter: blur(18px) saturate(160%);
+      background: rgba(14, 28, 47, 0.58);
+      border: 1px solid rgba(76, 214, 251, 0.07);
+      border-radius: 12px;
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    }
+    .glass-modal {
+      backdrop-filter: blur(32px) saturate(180%);
+      -webkit-backdrop-filter: blur(32px) saturate(180%);
+      background: rgba(10, 22, 40, 0.90);
+      border: 1px solid rgba(76, 214, 251, 0.11);
+      border-radius: 16px;
+      box-shadow: 0 16px 64px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    }
+
+    /* Page Animations */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .fade-up { animation: fadeUp 0.35s ease both; }
+    .fade-up-1 { animation-delay: 0.05s; }
+    .fade-up-2 { animation-delay: 0.10s; }
+    .fade-up-3 { animation-delay: 0.15s; }
+    .fade-up-4 { animation-delay: 0.20s; }
+
+    /* Custom inputs */
+    input, select {
+      transition: all 0.15s ease;
+    }
+    input:focus, select:focus {
+      border-color: #4cd6fb !important;
+      background-color: rgba(18, 35, 60, 0.6) !important;
+      box-shadow: 0 0 0 2px rgba(76, 214, 251, 0.2);
+    }
+  </style>
+</head>
+<body class="h-full flex overflow-hidden">
+
+  <!-- ==================== SIDEBAR ==================== -->
+  <nav class="w-64 h-screen fixed left-0 top-0 flex flex-col py-6 z-50 select-none"
+       style="backdrop-filter: blur(24px) saturate(160%); -webkit-backdrop-filter: blur(24px) saturate(160%); background: rgba(6, 20, 38, 0.80); border-right: 1px solid rgba(76, 214, 251, 0.07)">
+    
+    <!-- Logo -->
+    <div class="px-6 mb-10">
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 rounded-lg bg-primary-container flex items-center justify-center">
+          <span class="material-symbols-outlined fill-icon text-primary text-[18px]">account_balance_wallet</span>
+        </div>
+        <div>
+          <h1 class="text-[17px] font-bold text-on-surface tracking-tighter">Money Tracker</h1>
+          <p class="text-[9px] text-on-surface-variant font-semibold uppercase tracking-[0.1em]">Mode Démo Interactif</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Nav Items -->
+    <div class="flex-1 px-4 space-y-1">
+      <button onclick="switchTab('dashboard')" id="nav-dashboard"
+              class="nav-btn w-full flex items-center gap-3 px-4 py-3 text-left transition-colors duration-150 text-primary bg-surface-container-high border-r-2 border-primary font-semibold">
+        <span class="material-symbols-outlined text-[20px]">dashboard</span>
+        <span class="text-sm tracking-tight">Vue d'ensemble</span>
+      </button>
+      <button onclick="switchTab('accounts')" id="nav-accounts"
+              class="nav-btn w-full flex items-center gap-3 px-4 py-3 text-left transition-colors duration-150 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high font-semibold">
+        <span class="material-symbols-outlined text-[20px]">account_balance</span>
+        <span class="text-sm tracking-tight">Comptes bancaires</span>
+      </button>
+      <button onclick="switchTab('investments')" id="nav-investments"
+              class="nav-btn w-full flex items-center gap-3 px-4 py-3 text-left transition-colors duration-150 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high font-semibold">
+        <span class="material-symbols-outlined text-[20px]">trending_up</span>
+        <span class="text-sm tracking-tight">Investissements</span>
+      </button>
+      <button onclick="switchTab('subscriptions')" id="nav-subscriptions"
+              class="nav-btn w-full flex items-center gap-3 px-4 py-3 text-left transition-colors duration-150 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high font-semibold">
+        <span class="material-symbols-outlined text-[20px]">payments</span>
+        <span class="text-sm tracking-tight">Abonnements</span>
+      <button onclick="switchTab('forecast')" id="nav-forecast"
+              class="nav-btn w-full flex items-center gap-3 px-4 py-3 text-left transition-colors duration-150 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high font-semibold">
+        <span class="material-symbols-outlined text-[20px]">insights</span>
+        <span class="text-sm tracking-tight">Prévisions</span>
+      </button>
+      <button onclick="switchTab('architecture')" id="nav-architecture"
+              class="nav-btn w-full flex items-center gap-3 px-4 py-3 text-left transition-colors duration-150 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high font-semibold">
+        <span class="material-symbols-outlined text-[20px]">schema</span>
+        <span class="text-sm tracking-tight">Architecture & bMAD</span>
+      </button>
+    </div>
+
+    <!-- Bottom Settings & Actions -->
+    <div class="px-6 mt-auto">
+      <div class="pt-4 border-t border-outline-variant/10 space-y-1">
+        <div class="flex items-center gap-3 px-2 py-1.5 text-xs text-emerald-400 font-semibold bg-emerald-500/10 rounded-sm">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+          <span>Simulation Active</span>
+        </div>
+        <button onclick="switchTab('settings')" id="nav-settings"
+                class="nav-btn flex items-center gap-3 px-2 py-2 text-sm transition-colors w-full text-on-surface-variant hover:text-on-surface">
+          <span class="material-symbols-outlined text-[18px]">settings</span>
+          <span>Paramètres</span>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ==================== MAIN CONTENT AREA ==================== -->
+  <main class="ml-64 flex-1 h-screen flex flex-col overflow-hidden bg-surface">
+
+    <!-- Demo Mode Top Banner -->
+    <div class="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white text-xs font-semibold py-2 px-8 flex items-center justify-between z-50 select-none shrink-0 shadow-lg">
+      <div class="flex items-center gap-2">
+        <span class="material-symbols-outlined text-[16px] animate-pulse">auto_awesome</span>
+        <span><strong>Mode Démo Actif :</strong> Cette version fonctionne à 100% en local avec des données simulées (parfait pour vos démonstrations).</span>
+      </div>
+      <div class="flex items-center gap-4">
+        <span class="text-[10px] bg-white/20 px-2 py-0.5 rounded font-mono uppercase">LocalStorage Persistant</span>
+      </div>
+    </div>
+
+    <!-- Offline Overlay (Controlled via Settings page) -->
+    <div id="offline-screen" class="hidden fixed inset-0 bg-surface z-[100] flex flex-col items-center justify-center gap-4 text-center px-8">
+      <div class="text-2xl font-bold tracking-tight text-on-surface">Money Tracker</div>
+      <p class="text-tertiary font-semibold text-lg flex items-center gap-2">
+        <span class="material-symbols-outlined">wifi_off</span>
+        Backend local injoignable (Simulé)
+      </p>
+      <p class="text-sm text-on-surface-variant max-w-sm">
+        Vérifiez que le serveur FastAPI est démarré sur <span class="font-mono text-primary">http://localhost:8000</span>.
+      </p>
+      <button onclick="toggleSimulatedOffline(false)" 
+              class="mt-4 px-5 py-2.5 bg-primary text-on-primary font-bold text-sm rounded-sm hover:opacity-90 active:scale-95 transition-all">
+        Rétablir la connexion (Mode Démo)
+      </button>
+    </div>
+
+    <!-- Top Bar Component -->
+    <header class="h-16 sticky top-0 z-40 flex items-center justify-between px-8 select-none"
+            style="backdrop-filter: blur(24px) saturate(160%); -webkit-backdrop-filter: blur(24px) saturate(160%); background: rgba(6, 20, 38, 0.72); border-bottom: 1px solid rgba(76, 214, 251, 0.07)">
+      <div class="flex items-center gap-8">
+        <span id="header-title" class="text-[15px] font-black text-primary tracking-tight">Vue d'ensemble</span>
+      </div>
+      <div class="flex items-center gap-4">
+        <span id="sync-indicator" class="text-xs font-semibold text-on-surface-variant hidden"></span>
+        <button onclick="triggerGlobalSync()" id="sync-button"
+                class="flex items-center gap-2 px-4 py-1.5 bg-surface-container-high hover:bg-surface-container-highest text-xs font-bold text-primary rounded-sm transition-all active:scale-95">
+          <span id="sync-icon" class="material-symbols-outlined text-[16px]">sync</span>
+          <span>Synchroniser</span>
+        </button>
+        <div class="w-8 h-8 rounded-sm bg-surface-container-high flex items-center justify-center">
+          <span class="material-symbols-outlined text-on-surface-variant text-[18px]">person</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Scrollable content sections -->
+    <div class="flex-1 overflow-y-auto p-8 relative">
+
+      <!-- ==================== TAB: DASHBOARD ==================== -->
+      <div id="tab-dashboard" class="tab-content space-y-6">
+        
+        <!-- Greeting Header -->
+        <div class="fade-up">
+          <h1 id="greeting-title" class="text-xl font-extrabold text-on-surface tracking-tight">Bonjour ☀️</h1>
+          <p class="text-xs text-on-surface-variant mt-0.5">
+            Patrimoine aujourd'hui : 
+            <span id="patrimoine-variation-badge" class="font-bold text-primary">
+              +145,00 € (+0.55%)
+            </span>
+          </p>
+        </div>
+
+        <!-- Market Indices Section -->
+        <div class="fade-up fade-up-1 glass p-6">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h3 class="text-[11px] font-bold uppercase tracking-widest text-on-surface">État des marchés</h3>
+              <p class="text-[10px] text-on-surface-variant mt-0.5">Variation aujourd'hui · Données simulées en temps réel</p>
+            </div>
+            <button onclick="refreshMarketIndices()" class="text-on-surface-variant hover:text-primary transition-colors">
+              <span id="market-refresh-icon" class="material-symbols-outlined text-[16px]">refresh</span>
+            </button>
+          </div>
+          <div class="grid grid-cols-2 lg:grid-cols-4 gap-3" id="market-indices-grid">
+            <!-- Populated via script -->
+          </div>
+        </div>
+
+        <!-- Alerts Block -->
+        <div id="dashboard-alerts" class="space-y-2 hidden fade-up">
+          <!-- Populated if subscriptions or tokens are close to expiring -->
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-[38%_1fr] gap-8 items-start">
+          
+          <!-- Column Left (40% width) -->
+          <div class="space-y-6">
+            
+            <!-- Net worth widget -->
+            <div class="fade-up fade-up-2 p-6 glass">
+              <div class="flex justify-between items-start mb-2">
+                <span class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Patrimoine Total</span>
+                <span id="dashboard-pnl-pct" class="text-xs font-bold text-primary">+12.4%</span>
+              </div>
+              <div id="net-worth-value" class="font-data text-4xl font-semibold text-primary tracking-tight">0,00 €</div>
+              <div class="mt-4 flex items-center gap-2 text-[10px] text-on-surface-variant">
+                <span class="material-symbols-outlined text-sm">update</span>
+                <span id="last-sync-time">Synchronisé il y a quelques secondes</span>
+              </div>
+            </div>
+
+            <!-- Asset classes overview grid -->
+            <div class="fade-up fade-up-2 grid grid-cols-2 gap-4">
+              <div class="p-5 glass">
+                <span class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Comptes</span>
+                <div id="accounts-total-kpi" class="font-data text-2xl font-semibold text-on-surface mt-1">0,00 €</div>
+              </div>
+              <div class="p-5 glass">
+                <span class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Investissements</span>
+                <div id="investments-total-kpi" class="font-data text-2xl font-semibold text-on-surface mt-1">0,00 €</div>
+              </div>
+            </div>
+
+            <!-- Allocation Chart and details -->
+            <div class="fade-up fade-up-3 p-6 glass space-y-4">
+              <h3 class="text-[11px] font-bold uppercase tracking-widest text-on-surface border-b border-outline-variant/10 pb-3">
+                Répartition des actifs
+              </h3>
+              <div class="flex items-center justify-center py-2 relative">
+                <div class="w-40 h-40">
+                  <canvas id="allocationChart"></canvas>
+                </div>
+              </div>
+              <div class="space-y-2.5">
+                <div class="flex items-center justify-between text-xs">
+                  <div class="flex items-center gap-2">
+                    <div class="w-2.5 h-2.5 rounded-full bg-[#4cd6fb]"></div>
+                    <span class="text-on-surface-variant">Comptes Bancaires</span>
+                  </div>
+                  <span id="allocation-pct-bank" class="font-bold">0%</span>
+                </div>
+                <div class="flex items-center justify-between text-xs">
+                  <div class="flex items-center gap-2">
+                    <div class="w-2.5 h-2.5 rounded-full bg-[#00b4d8]"></div>
+                    <span class="text-on-surface-variant">Investissements</span>
+                  </div>
+                  <span id="allocation-pct-investments" class="font-bold">0%</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Upcoming subscriptions -->
+            <div id="upcoming-subs-card" class="fade-up fade-up-4 p-5 glass hidden">
+              <h3 class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-3">
+                Prélèvements sous 7 jours
+              </h3>
+              <div class="space-y-2" id="upcoming-subs-list">
+                <!-- Populated via script -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Column Right (60% width) -->
+          <div class="space-y-6">
+            
+            <!-- Performance Chart -->
+            <div class="fade-up fade-up-2 glass p-8">
+              <div class="flex justify-between items-end mb-6">
+                <div>
+                  <h2 class="text-xl font-extrabold text-on-surface tracking-tight mb-1">Performance Portfolio</h2>
+                  <p class="text-xs text-on-surface-variant">Évolution patrimoniale simulée (6 mois)</p>
+                </div>
+                <div class="flex gap-4">
+                  <div class="flex items-center gap-2">
+                    <div class="w-3 h-0.5 bg-primary"></div>
+                    <span class="text-[10px] font-bold uppercase text-on-surface-variant">Patrimoine</span>
+                  </div>
+                </div>
+              </div>
+              <div class="h-64 relative">
+                <canvas id="performanceChart"></canvas>
+              </div>
+            </div>
+
+            <!-- Top Holdings Table -->
+            <div class="fade-up fade-up-3 glass overflow-hidden">
+              <div class="px-8 py-5 border-b border-outline-variant/10 flex justify-between items-center">
+                <h3 class="text-[11px] font-bold uppercase tracking-widest text-on-surface">Top Positions</h3>
+                <button onclick="switchTab('investments')" class="text-xs font-bold text-primary flex items-center gap-1 hover:underline">
+                  Voir tout <span class="material-symbols-outlined text-sm">chevron_right</span>
+                </button>
+              </div>
+              <div class="overflow-x-auto">
+                <table class="w-full text-left">
+                  <thead class="bg-surface-container-highest/30">
+                    <tr>
+                      <th class="px-6 py-3 text-[10px] font-bold uppercase text-on-surface-variant tracking-widest">Actif</th>
+                      <th class="px-6 py-3 text-[10px] font-bold uppercase text-on-surface-variant tracking-widest">Ticker</th>
+                      <th class="px-6 py-3 text-[10px] font-bold uppercase text-on-surface-variant tracking-widest text-right">Valeur actuelle</th>
+                      <th class="px-6 py-3 text-[10px] font-bold uppercase text-on-surface-variant tracking-widest text-right">P&L</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-outline-variant/5" id="dashboard-holdings-body">
+                    <!-- Populated via script -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- P&L and Monthly Cost Info blocks -->
+            <div class="fade-up grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div class="glass p-5 flex items-center gap-4">
+                <div class="w-10 h-10 rounded bg-tertiary-container/20 flex items-center justify-center shrink-0">
+                  <span class="material-symbols-outlined text-tertiary">priority_high</span>
+                </div>
+                <div>
+                  <h4 class="text-[10px] font-bold uppercase tracking-widest text-on-surface mb-1">P&amp;L Global</h4>
+                  <p id="dashboard-pnl-absolute" class="text-sm font-data font-semibold text-primary">+0,00 €</p>
+                </div>
+              </div>
+              <div class="glass p-5 flex items-center gap-4">
+                <div class="w-10 h-10 rounded bg-primary-container/20 flex items-center justify-center shrink-0">
+                  <span class="material-symbols-outlined text-primary">payments</span>
+                </div>
+                <div>
+                  <h4 class="text-[10px] font-bold uppercase tracking-widest text-on-surface mb-1">Abonnements / mois</h4>
+                  <p id="dashboard-subs-monthly" class="text-sm font-data font-semibold text-on-surface">
+                    0,00 €
+                    <span id="dashboard-subs-count" class="text-[10px] text-on-surface-variant ml-1 font-sans font-normal">(0 actifs)</span>
+                  </p>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ==================== TAB: BANK ACCOUNTS ==================== -->
+      <div id="tab-accounts" class="tab-content hidden space-y-6">
+        
+        <div class="flex items-end justify-between mb-8 fade-up">
+          <div>
+            <h1 class="text-2xl font-extrabold text-on-surface tracking-tight">Comptes Bancaires</h1>
+            <p class="text-xs text-on-surface-variant mt-1">Saisie manuelle ou synchronisation sécurisée</p>
+          </div>
+          <div class="flex items-center gap-3">
+            <button onclick="openModal('modal-manual-account')"
+                    class="flex items-center gap-2 px-4 py-2 bg-surface-container-high border border-outline-variant/30 hover:bg-surface-container-highest text-primary text-xs font-bold rounded-sm transition-all active:scale-95">
+              <span class="material-symbols-outlined text-[16px]">edit_note</span>
+              Compte Manuel
+            </button>
+            <button onclick="openModal('modal-connect-bank')"
+                    class="flex items-center gap-2 px-5 py-2.5 bg-primary text-on-primary text-sm font-bold rounded-sm active:scale-95 transition-all">
+              <span class="material-symbols-outlined text-[18px]">account_balance</span>
+              Connecter une banque
+            </button>
+          </div>
+        </div>
+
+        <!-- Accounts Balance KPI Card -->
+        <div class="fade-up fade-up-1 p-6 glass mb-6">
+          <span class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Total disponible</span>
+          <div id="accounts-page-total" class="font-data text-3xl font-semibold text-primary mt-1">0,00 €</div>
+        </div>
+
+        <!-- Bank list grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="accounts-grid">
+          <!-- Populated dynamically -->
+        </div>
+
+        <!-- Security settings shortcut card -->
+        <div class="mt-8 p-6 glass fade-up">
+          <h2 class="text-sm font-bold text-on-surface mb-4 flex items-center gap-2">
+            <span class="material-symbols-outlined text-[18px] text-on-surface-variant">settings</span>
+            Paramètres de sécurité
+          </h2>
+          <div class="space-y-3">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-1">Clé API locale</p>
+                <p id="accounts-api-key" class="text-xs font-mono text-on-surface">••••••••••••••••••••34a1</p>
+              </div>
+              <div>
+                <span class="text-[10px] font-bold px-2 py-1 rounded-sm bg-primary/10 text-primary">✅ Sécurisé</span>
+              </div>
+            </div>
+            <p id="accounts-db-path" class="text-[10px] text-on-surface-variant font-mono truncate">sqlite:///Users/abdelarbaoui/Documents/money-tracker/backend/data/db.sqlite3</p>
+            <button onclick="switchTab('settings')"
+                    class="flex items-center gap-2 px-4 py-2 text-xs font-bold text-primary border border-outline-variant/30 rounded-sm hover:bg-surface-container-high transition-colors">
+              <span class="material-symbols-outlined text-[14px]">tune</span>
+              Gérer la sécurité
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ==================== TAB: INVESTMENTS ==================== -->
+      <div id="tab-investments" class="tab-content hidden space-y-6">
+        
+        <div class="flex items-end justify-between mb-8 fade-up">
+          <div>
+            <h1 class="text-2xl font-extrabold text-on-surface tracking-tight">Investissements</h1>
+            <div class="flex items-center gap-2 mt-1">
+              <p class="text-xs text-on-surface-variant">Suivi du portefeuille : Actions, ETF, Crypto</p>
+              <span id="investments-sync-badge" class="text-[10px] text-on-surface-variant/60 border border-outline-variant/20 px-2 py-0.5 rounded-sm">
+                Synchronisé à l'instant
+              </span>
+            </div>
+          </div>
+          <div class="flex items-center gap-3">
+            <button onclick="triggerTRSyncSim()" id="tr-sync-btn"
+                    class="flex items-center gap-2 px-4 py-2.5 bg-surface-container-high hover:bg-surface-container-highest border border-outline-variant/30 text-primary text-xs font-bold rounded-sm transition-all active:scale-95">
+              <span class="material-symbols-outlined text-[16px]">sync</span>
+              Sync Trade Republic
+            </button>
+            <button onclick="openModal('modal-add-holding')"
+                    class="flex items-center gap-2 px-5 py-2.5 bg-primary text-on-primary text-sm font-bold rounded-sm active:scale-95 transition-all">
+              <span class="material-symbols-outlined text-[18px]">add</span>
+              Ajouter une position
+            </button>
+          </div>
+        </div>
+
+        <!-- Sync messages/warnings -->
+        <div id="investments-sync-info-bar" class="hidden text-[11px] p-3 rounded-lg border bg-surface-container mb-4">
+        </div>
+
+        <!-- Investment KPI row -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8 fade-up fade-up-1">
+          <div class="p-5 glass">
+            <span class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Valeur totale</span>
+            <div id="investments-page-total" class="font-data text-xl font-semibold mt-1 text-primary">0,00 €</div>
+          </div>
+          <div class="p-5 glass">
+            <span class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Capital investi</span>
+            <div id="investments-page-invested" class="font-data text-xl font-semibold mt-1 text-on-surface">0,00 €</div>
+          </div>
+          <div class="p-5 glass">
+            <span class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">P&L Global (€)</span>
+            <div id="investments-page-pnl-abs" class="font-data text-xl font-semibold mt-1 text-primary">+0,00 €</div>
+          </div>
+          <div class="p-5 glass">
+            <span class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">P&L Global (%)</span>
+            <div id="investments-page-pnl-pct" class="font-data text-xl font-semibold mt-1 text-primary">+0%</div>
+          </div>
+        </div>
+
+        <!-- Positions list -->
+        <div class="glass overflow-hidden fade-up fade-up-2">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left">
+              <thead class="bg-surface-container-highest/30">
+                <tr class="border-b border-outline-variant/10">
+                  <th class="px-6 py-4 text-[10px] font-bold uppercase text-on-surface-variant tracking-widest">Actif</th>
+                  <th class="px-6 py-4 text-[10px] font-bold uppercase text-on-surface-variant tracking-widest">Plateforme</th>
+                  <th class="px-6 py-4 text-[10px] font-bold uppercase text-on-surface-variant tracking-widest text-right">Quantité</th>
+                  <th class="px-6 py-4 text-[10px] font-bold uppercase text-on-surface-variant tracking-widest text-right">Prix moyen</th>
+                  <th class="px-6 py-4 text-[10px] font-bold uppercase text-on-surface-variant tracking-widest text-right">Prix actuel</th>
+                  <th class="px-6 py-4 text-[10px] font-bold uppercase text-on-surface-variant tracking-widest text-right">Valeur</th>
+                  <th class="px-6 py-4 text-[10px] font-bold uppercase text-on-surface-variant tracking-widest text-right">P&L</th>
+                  <th class="px-6 py-4 text-[10px] font-bold uppercase text-on-surface-variant tracking-widest"></th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-outline-variant/5" id="investments-table-body">
+                <!-- Populated dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ==================== TAB: SUBSCRIPTIONS ==================== -->
+      <div id="tab-subscriptions" class="tab-content hidden space-y-6">
+        
+        <div class="flex items-end justify-between mb-8 fade-up">
+          <div>
+            <h1 class="text-2xl font-extrabold text-on-surface tracking-tight">Abonnements</h1>
+            <p class="text-xs text-on-surface-variant mt-1">Gérez vos prélèvements et votre calendrier de facturation</p>
+          </div>
+          <div class="flex items-center gap-3">
+            <!-- View toggler (List vs Calendar) -->
+            <div style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px" class="flex overflow-hidden p-0.5">
+              <button onclick="setSubView('list')" id="sub-view-list-btn"
+                      class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold transition-all rounded bg-primary text-on-primary">
+                <span class="material-symbols-outlined text-[15px]">list</span>
+                Liste
+              </button>
+              <button onclick="setSubView('calendar')" id="sub-view-calendar-btn"
+                      class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold transition-all rounded text-on-surface-variant hover:text-on-surface">
+                <span class="material-symbols-outlined text-[15px]">calendar_month</span>
+                Calendrier
+              </button>
+            </div>
+            <button onclick="openModal('modal-add-subscription')"
+                    class="flex items-center gap-2 px-5 py-2.5 bg-primary text-on-primary text-sm font-bold rounded-sm active:scale-95 transition-all">
+              <span class="material-symbols-outlined text-[18px]">add</span>
+              Ajouter
+            </button>
+          </div>
+        </div>
+
+        <!-- Subscription stats metrics -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8 fade-up fade-up-1" id="sub-kpis-grid">
+          <!-- Populated via javascript -->
+        </div>
+
+        <!-- Upcoming payments within 7 days banner -->
+        <div id="sub-upcoming-banner" class="hidden mb-6 p-4 rounded-xl flex items-start gap-3 fade-up"
+             style="background: rgba(255,214,10,0.08); border: 1px solid rgba(255,214,10,0.2)">
+          <span class="material-symbols-outlined text-[#ffd60a] shrink-0 text-[20px]">notifications_active</span>
+          <div>
+            <p class="text-xs font-bold text-on-surface mb-2">⚡ Prélèvements prévus sous 7 jours</p>
+            <div class="flex flex-wrap gap-2" id="sub-upcoming-badges-container">
+              <!-- Populated via script -->
+            </div>
+          </div>
+        </div>
+
+        <!-- View: List Container -->
+        <div id="sub-view-list" class="glass overflow-hidden fade-up fade-up-2">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left">
+              <thead>
+                <tr class="border-b border-outline-variant/10">
+                  <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Abonnement</th>
+                  <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Montant</th>
+                  <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Fréquence</th>
+                  <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Prochain</th>
+                  <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Statut</th>
+                  <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant"></th>
+                </tr>
+              </thead>
+              <tbody id="subscriptions-table-body" class="divide-y divide-outline-variant/5">
+                <!-- Populated dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- View: Calendar Container -->
+        <div id="sub-view-calendar" class="hidden space-y-4 fade-up">
+          <div class="flex items-center justify-between mb-4">
+            <p class="text-xs font-bold text-on-surface-variant uppercase tracking-widest">Planning sur les 30 prochains jours</p>
+          </div>
+          <div class="space-y-1.5" id="subscriptions-calendar-list">
+            <!-- Timeline elements dynamically built -->
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ==================== TAB: FORECASTS ==================== -->
+      <div id="tab-forecast" class="tab-content hidden space-y-6">
+        
+        <div class="mb-8 fade-up">
+          <h1 class="text-2xl font-extrabold text-on-surface tracking-tight">Forecast</h1>
+          <p class="text-xs text-on-surface-variant mt-1">Estimez la croissance de votre patrimoine par intérêts composés</p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-8 items-start">
+          
+          <!-- Parameters Controls Column -->
+          <div class="space-y-4 fade-up fade-up-1">
+            
+            <div class="glass p-5 space-y-4">
+              <h2 class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Paramètres</h2>
+              
+              <!-- Form Field: Capital initial -->
+              <div>
+                <label class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant block mb-1.5">Capital initial (€)</label>
+                <div class="relative">
+                  <input type="number" id="forecast-capital" oninput="runForecastCalculation()"
+                         class="w-full bg-surface-container border border-outline-variant/20 rounded-sm px-3 py-2 text-sm text-on-surface focus:outline-none focus:border-primary" placeholder="0">
+                  <button onclick="prefillForecastFromInvestments()" 
+                          class="absolute right-2 top-2 text-[10px] text-primary hover:underline font-bold">
+                    Injecter Portfolio
+                  </button>
+                </div>
+              </div>
+
+              <!-- Form Field: Apport mensuel -->
+              <div>
+                <label class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant block mb-1.5">Apport mensuel (€)</label>
+                <input type="number" id="forecast-apport" oninput="runForecastCalculation()" value="300"
+                       class="w-full bg-surface-container border border-outline-variant/20 rounded-sm px-3 py-2 text-sm text-on-surface focus:outline-none focus:border-primary" placeholder="300">
+              </div>
+
+              <!-- Form Field: Rendement annuel -->
+              <div>
+                <label class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant block mb-1.5">Taux de rendement (% / an)</label>
+                <input type="number" id="forecast-rate" oninput="runForecastCalculation()" value="7" step="0.5"
+                       class="w-full bg-surface-container border border-outline-variant/20 rounded-sm px-3 py-2 text-sm text-on-surface focus:outline-none focus:border-primary">
+                <p id="forecast-warning-rate" class="text-[10px] text-amber-500 mt-1 hidden">
+                  ⚠️ Rendement très élevé — vérifiez vos hypothèses
+                </p>
+              </div>
+
+              <!-- Form Field: Horizon -->
+              <div>
+                <div class="flex justify-between text-[10px] text-on-surface-variant font-bold uppercase mb-1.5">
+                  <span>Horizon</span>
+                  <span id="forecast-horizon-val" class="text-primary">20 ans</span>
+                </div>
+                <input type="range" id="forecast-horizon" min="1" max="30" step="1" value="20" oninput="updateForecastHorizonLabel(); runForecastCalculation();"
+                       class="w-full accent-primary">
+                <div class="flex justify-between text-[9px] text-on-surface-variant/50 mt-0.5">
+                  <span>1 an</span>
+                  <span>30 ans</span>
+                </div>
+              </div>
+
+              <!-- Save button -->
+              <button onclick="openModal('modal-save-scenario')"
+                      class="w-full py-2.5 text-xs font-bold bg-primary text-on-primary rounded-sm active:scale-95 transition-all">
+                Sauvegarder ce scénario
+              </button>
+            </div>
+
+            <!-- Standard Reference Rates shortcut -->
+            <div class="glass p-5">
+              <h2 class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-3">Taux de référence</h2>
+              <div class="space-y-2">
+                <button onclick="setForecastRate(7.0)" class="w-full flex items-center justify-between px-3 py-2 rounded-sm bg-surface-container hover:bg-surface-container-high transition-colors text-left text-xs">
+                  <div>
+                    <span class="font-bold text-primary">S&P 500</span>
+                    <span class="text-[9px] text-on-surface-variant ml-1">Moyenne historique 30a</span>
+                  </div>
+                  <span class="font-bold text-primary">7.0%</span>
+                </button>
+                <button onclick="setForecastRate(3.0)" class="w-full flex items-center justify-between px-3 py-2 rounded-sm bg-surface-container hover:bg-surface-container-high transition-colors text-left text-xs">
+                  <div>
+                    <span class="font-bold text-on-surface-variant">Livret A</span>
+                    <span class="text-[9px] text-on-surface-variant/70 ml-1">Taux garanti réglementé</span>
+                  </div>
+                  <span class="font-bold text-on-surface-variant">3.0%</span>
+                </button>
+                <button onclick="setForecastRate(5.0)" class="w-full flex items-center justify-between px-3 py-2 rounded-sm bg-surface-container hover:bg-surface-container-high transition-colors text-left text-xs">
+                  <div>
+                    <span class="font-bold text-secondary">LEP</span>
+                    <span class="text-[9px] text-on-surface-variant/70 ml-1">Épargne populaire (plafonnée)</span>
+                  </div>
+                  <span class="font-bold text-secondary">5.0%</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Saved Scenarios listing -->
+            <div class="glass p-5">
+              <h2 class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-3">Scénarios sauvegardés</h2>
+              <div class="space-y-2" id="forecast-scenarios-list">
+                <!-- Dynamically listed scenarios -->
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Chart & Metrics Display Column -->
+          <div class="space-y-4 fade-up fade-up-2">
+            
+            <!-- Graphic Card -->
+            <div class="glass p-5">
+              <div class="flex items-center justify-between mb-4">
+                <h2 class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Graphique de projection</h2>
+                <div id="forecast-comparison-indicator" class="hidden flex items-center gap-2">
+                  <span id="forecast-comparison-label" class="text-[10px] text-secondary font-bold"></span>
+                  <button onclick="clearForecastComparison()" class="text-on-surface-variant hover:text-tertiary">
+                    <span class="material-symbols-outlined text-[14px]">close</span>
+                  </button>
+                </div>
+              </div>
+              <div class="h-80 relative">
+                <canvas id="forecastChart"></canvas>
+              </div>
+            </div>
+
+            <!-- Final Values Metric cards -->
+            <div class="grid grid-cols-3 gap-3">
+              <div class="glass p-4 text-center">
+                <p class="text-[9px] font-bold uppercase tracking-widest text-on-surface-variant mb-1">Pessimiste (-3%)</p>
+                <p id="forecast-kpi-pessimistic" class="font-data text-base font-bold text-on-surface-variant">0 €</p>
+                <p class="text-[9px] text-on-surface-variant/60 mt-0.5">Fin de période</p>
+              </div>
+              <div class="glass p-4 text-center border-t border-primary/20">
+                <p class="text-[9px] font-bold uppercase tracking-widest text-primary mb-1">Base de calcul</p>
+                <p id="forecast-kpi-base" class="font-data text-lg font-bold text-primary">0 €</p>
+                <p class="text-[9px] text-primary/70 mt-0.5">Fin de période</p>
+              </div>
+              <div class="glass p-4 text-center">
+                <p class="text-[9px] font-bold uppercase tracking-widest text-emerald-400 mb-1">Optimiste (+3%)</p>
+                <p id="forecast-kpi-optimistic" class="font-data text-base font-bold text-emerald-400">0 €</p>
+                <p class="text-[9px] text-emerald-400/60 mt-0.5">Fin de période</p>
+              </div>
+            </div>
+
+            <!-- Hypotheses explanation block -->
+            <div class="glass p-4 text-[10px] text-on-surface-variant space-y-1.5">
+              <h3 class="font-bold text-on-surface uppercase tracking-wider">Note sur la méthode</h3>
+              <p>• Les courbes calculent les intérêts mensuels composés : <code class="bg-surface-container px-1 font-mono text-[9px]">Capital × (1 + r)^n + Apport × [(1+r)^n - 1] / r</code></p>
+              <p>• La courbe **Base** correspond au taux annuel sélectionné.</p>
+              <p>• Les courbes **Pessimiste** et **Optimiste** décalent le taux de rendement de 3 points en moins ou en plus.</p>
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- ==================== TAB: SETTINGS ==================== -->
+      <div id="tab-settings" class="tab-content hidden max-w-2xl mx-auto space-y-6">
+        
+        <div>
+          <h1 class="text-2xl font-bold tracking-tight text-on-surface">Paramètres</h1>
+          <p class="text-sm text-on-surface-variant mt-1">Configuration générale, gestion des clés de sécurité et simulateur de pannes.</p>
+        </div>
+
+        <!-- Simulation debug triggers -->
+        <div class="glass rounded-2xl p-6 space-y-4 border border-primary/20">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="material-symbols-outlined text-primary text-[22px]">developer_board</span>
+            <h2 class="text-base font-semibold text-on-surface">Debug &amp; Simulation (Entretien)</h2>
+          </div>
+          <p class="text-xs text-on-surface-variant">
+            Utilisez ces commandes pour démontrer la robustesse de l'application face aux échecs réseau ou aux alertes de volume de stockage.
+          </p>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+            <div class="flex items-center justify-between p-3 bg-surface-container rounded-lg">
+              <div>
+                <p class="text-xs font-bold text-on-surface">Simuler Hors-ligne</p>
+                <p class="text-[10px] text-on-surface-variant">Affiche l'écran d'indisponibilité réseau</p>
+              </div>
+              <button onclick="toggleSimulatedOffline(true)" 
+                      class="px-3 py-1.5 bg-tertiary text-white font-bold text-xs rounded-sm hover:opacity-90">
+                Activer
+              </button>
+            </div>
+            <div class="flex items-center justify-between p-3 bg-surface-container rounded-lg">
+              <div>
+                <p class="text-xs font-bold text-on-surface">Volume Base (>500 Mo)</p>
+                <p class="text-[10px] text-on-surface-variant">Déclenche un message d'alerte stockage</p>
+              </div>
+              <button onclick="toggleSimulatedLargeDb()" id="large-db-btn"
+                      class="px-3 py-1.5 bg-surface-container-high border border-outline-variant/30 text-primary font-bold text-xs rounded-sm hover:bg-surface-container-highest">
+                Simuler
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Security API key settings -->
+        <div class="glass rounded-2xl p-6 space-y-4">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="material-symbols-outlined text-primary text-[22px]">key</span>
+            <h2 class="text-base font-semibold text-on-surface">Clé d'autorisation API</h2>
+          </div>
+          <div class="space-y-3">
+            <div class="flex items-center justify-between py-2 border-b border-outline-variant/10">
+              <span class="text-sm text-on-surface-variant">Clé (masquée)</span>
+              <span id="settings-masked-key" class="text-sm font-mono font-medium text-on-surface">mt_live_••••••••••••••••••••34a1</span>
+            </div>
+            <div class="flex items-center justify-between py-2 border-b border-outline-variant/10">
+              <span class="text-sm text-on-surface-variant">Permissions</span>
+              <span class="text-sm font-medium text-on-surface">read_write_sync</span>
+            </div>
+            <div class="flex items-center justify-between py-2 border-b border-outline-variant/10">
+              <span class="text-sm text-on-surface-variant">Fichier d'accès local</span>
+              <span class="text-sm font-mono text-on-surface">~/.money-tracker/auth_token</span>
+            </div>
+            <div class="pt-2">
+              <button onclick="regenerateDemoApiKey()"
+                      class="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-xl border border-outline-variant/30 text-on-surface-variant hover:text-on-surface hover:border-primary/40 hover:bg-surface-container-high transition-all">
+                <span class="material-symbols-outlined text-[16px]">refresh</span>
+                Régénérer la clé API
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- SQLite Database file info -->
+        <div class="glass rounded-2xl p-6 space-y-4">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="material-symbols-outlined text-primary text-[22px]">storage</span>
+            <h2 class="text-base font-semibold text-on-surface">Base de données Locale</h2>
+          </div>
+          <div id="db-large-alert" class="hidden flex items-start gap-2 p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl">
+            <span class="material-symbols-outlined text-amber-400 text-[20px] mt-0.5">warning</span>
+            <p class="text-sm text-amber-300 flex-1">
+              Base de données volumineuse (<span id="alert-db-size">0.0</span> Mo) — Envisagez de réinitialiser vos données ou de vider les journaux historiques.
+            </p>
+          </div>
+          <div class="space-y-2">
+            <div class="flex items-center justify-between py-2 border-b border-outline-variant/10">
+              <span class="text-sm text-on-surface-variant">Stockage</span>
+              <span class="text-sm font-medium text-on-surface" id="settings-db-size-label">12,4 Mo</span>
+            </div>
+            <div class="flex items-center justify-between py-2 border-b border-outline-variant/10">
+              <span class="text-sm text-on-surface-variant">Moteur</span>
+              <span class="text-sm font-medium text-on-surface">SQLite 3.42.0</span>
+            </div>
+            <div class="flex items-center justify-between py-2 border-b border-outline-variant/10">
+              <span class="text-sm text-on-surface-variant">Statut d'intégrité</span>
+              <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">✓ Sain (PRAGMA integrity_ok)</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Danger Zone Reset -->
+        <div class="glass rounded-2xl p-6 space-y-4 border border-tertiary/20">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="material-symbols-outlined text-tertiary text-[22px]">delete_forever</span>
+            <h2 class="text-base font-semibold text-tertiary">Zone de danger</h2>
+          </div>
+          <p class="text-sm text-on-surface-variant">
+            Efface toutes les données stockées dans le navigateur : comptes, investissements, abonnements, et scénarios de simulation. Cette action est irréversible.
+          </p>
+          <div class="pt-2" id="danger-zone-controls">
+            <button onclick="setDangerStep(1)"
+                    class="px-4 py-2 text-sm font-semibold rounded-xl bg-tertiary/10 border border-tertiary/30 text-tertiary hover:bg-tertiary/20 hover:border-tertiary/60 transition-all duration-150">
+              Effacer toutes les données de démo
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ==================== TAB: ARCHITECTURE & bMAD ==================== -->
+      <div id="tab-architecture" class="tab-content hidden space-y-6">
+        
+        <div class="mb-4 fade-up">
+          <h1 class="text-2xl font-extrabold text-on-surface tracking-tight">Architecture &amp; Méthode bMAD</h1>
+          <p class="text-xs text-on-surface-variant mt-1">Présentation technique et méthodologique interactive pour les recruteurs</p>
+        </div>
+
+        <!-- Slide Navigation Controls -->
+        <div class="flex items-center justify-between bg-surface-container-high/40 p-3 rounded-lg border border-outline-variant/10 mb-2">
+          <div class="flex items-center gap-1.5 overflow-x-auto py-1 scrollbar-thin">
+            <button onclick="goToSlide(1)" id="slide-btn-1" class="slide-nav-btn px-3 py-1.5 rounded text-[10px] font-bold uppercase tracking-wider transition-all bg-primary/20 text-primary border border-primary/30">1. Pitch &amp; Vision</button>
+            <button onclick="goToSlide(2)" id="slide-btn-2" class="slide-nav-btn px-3 py-1.5 rounded text-[10px] font-bold uppercase tracking-wider transition-all text-on-surface-variant hover:bg-surface-container-high border border-transparent">2. Diagramme C4</button>
+            <button onclick="goToSlide(3)" id="slide-btn-3" class="slide-nav-btn px-3 py-1.5 rounded text-[10px] font-bold uppercase tracking-wider transition-all text-on-surface-variant hover:bg-surface-container-high border border-transparent">3. Chiffrement &amp; Sécurité</button>
+            <button onclick="goToSlide(4)" id="slide-btn-4" class="slide-nav-btn px-3 py-1.5 rounded text-[10px] font-bold uppercase tracking-wider transition-all text-on-surface-variant hover:bg-surface-container-high border border-transparent">4. Sync &amp; Mutex</button>
+            <button onclick="goToSlide(5)" id="slide-btn-5" class="slide-nav-btn px-3 py-1.5 rounded text-[10px] font-bold uppercase tracking-wider transition-all text-on-surface-variant hover:bg-surface-container-high border border-transparent">5. Méthode bMAD</button>
+          </div>
+          <div class="flex items-center gap-2">
+            <button onclick="prevSlide()" class="p-1 rounded hover:bg-surface-container-high text-on-surface-variant disabled:opacity-30 disabled:hover:bg-transparent" id="slide-prev-btn">
+              <span class="material-symbols-outlined text-[18px]">chevron_left</span>
+            </button>
+            <span class="text-[10px] font-bold text-on-surface-variant tracking-wider" id="slide-indicator">1 / 5</span>
+            <button onclick="nextSlide()" class="p-1 rounded hover:bg-surface-container-high text-on-surface-variant disabled:opacity-30 disabled:hover:bg-transparent" id="slide-next-btn">
+              <span class="material-symbols-outlined text-[18px]">chevron_right</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Slide Progress Bar -->
+        <div class="w-full bg-outline-variant/10 h-1 rounded-full mb-6 overflow-hidden">
+          <div id="slide-progress" class="bg-primary h-full transition-all duration-300 w-1/5"></div>
+        </div>
+
+        <!-- ==================== SLIDE 1: PITCH & VISION ==================== -->
+        <div id="slide-content-1" class="slide-pane space-y-6">
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Left Card: The Pitch -->
+            <div class="glass p-6 space-y-5">
+              <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <span class="material-symbols-outlined text-primary text-[18px]">lock</span>
+                </div>
+                <h3 class="text-sm font-bold text-on-surface">Pourquoi le choix du Local-First ?</h3>
+              </div>
+              <p class="text-xs text-on-surface-variant leading-relaxed">
+                Les applications financières traditionnelles imposent de stocker vos données bancaires sur des serveurs tiers cloud. Cela engendre des risques de sécurité majeurs (fuites de données, piratage), des abonnements récurrents onéreux et rend l'application dépendante d'une connexion internet.
+              </p>
+              <p class="text-xs text-on-surface-variant leading-relaxed font-semibold">
+                Money Tracker résout ces problèmes en adoptant un modèle local-first strict.
+              </p>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                <div class="p-4 rounded-xl border border-red-500/20 bg-red-950/10 space-y-2">
+                  <h4 class="text-[10px] font-bold uppercase tracking-widest text-red-400 flex items-center gap-1.5">
+                    <span class="material-symbols-outlined text-[14px]">cancel</span> Modèle standard Cloud
+                  </h4>
+                  <ul class="text-[10px] text-on-surface-variant space-y-1.5 leading-relaxed">
+                    <li class="flex items-start gap-1"><span class="text-red-400 font-bold">•</span> Serveur cloud stockant vos comptes</li>
+                    <li class="flex items-start gap-1"><span class="text-red-400 font-bold">•</span> Identifiants de banques partagés en ligne</li>
+                    <li class="flex items-start gap-1"><span class="text-red-400 font-bold">•</span> Modèle SaaS payant obligatoire</li>
+                    <li class="flex items-start gap-1"><span class="text-red-400 font-bold">•</span> Hors-ligne inutilisable</li>
+                  </ul>
+                </div>
+                <div class="p-4 rounded-xl border border-emerald-500/20 bg-emerald-950/10 space-y-2">
+                  <h4 class="text-[10px] font-bold uppercase tracking-widest text-emerald-400 flex items-center gap-1.5">
+                    <span class="material-symbols-outlined text-[14px]">check_circle</span> Modèle Local-First
+                  </h4>
+                  <ul class="text-[10px] text-on-surface-variant space-y-1.5 leading-relaxed">
+                    <li class="flex items-start gap-1"><span class="text-emerald-400 font-bold">•</span> SQLite local chiffré AES-128</li>
+                    <li class="flex items-start gap-1"><span class="text-emerald-400 font-bold">•</span> Clés stockées dans le Keychain OS</li>
+                    <li class="flex items-start gap-1"><span class="text-emerald-400 font-bold">•</span> 100% gratuit &amp; à vie</li>
+                    <li class="flex items-start gap-1"><span class="text-emerald-400 font-bold">•</span> Mode offline natif ultra-rapide</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Right Card: Live Stats & Tech Highlights -->
+            <div class="glass p-6 space-y-6">
+              <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-lg bg-secondary/10 flex items-center justify-center">
+                  <span class="material-symbols-outlined text-secondary text-[18px]">speed</span>
+                </div>
+                <h3 class="text-sm font-bold text-on-surface">Indicateurs Locaux de Performance</h3>
+              </div>
+              <div class="grid grid-cols-2 gap-4">
+                <div class="bg-surface-container/60 p-4 rounded-xl border border-outline-variant/20 text-center">
+                  <span class="text-[9px] font-bold uppercase tracking-widest text-on-surface-variant block mb-1">Latence de lecture</span>
+                  <span class="text-xl font-extrabold text-primary tracking-tight font-data">&lt; 2 ms</span>
+                  <span class="text-[9px] text-on-surface-variant/80 block mt-1">SQLite en local direct</span>
+                </div>
+                <div class="bg-surface-container/60 p-4 rounded-xl border border-outline-variant/20 text-center">
+                  <span class="text-[9px] font-bold uppercase tracking-widest text-on-surface-variant block mb-1">Stockage SQLite</span>
+                  <span class="text-xl font-extrabold text-secondary tracking-tight font-data">~ 140 KB</span>
+                  <span class="text-[9px] text-on-surface-variant/80 block mt-1">Base ultra-légère optimisée</span>
+                </div>
+              </div>
+              <div class="space-y-3 pt-2">
+                <h4 class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Architecture Technique de l'application</h4>
+                <div class="space-y-2 text-xs">
+                  <div class="flex justify-between items-center bg-surface-container/40 px-3 py-2 rounded border border-outline-variant/10">
+                    <span class="text-on-surface-variant">Interface utilisateur</span>
+                    <span class="font-bold text-primary font-mono text-[10px]">React SPA + Recharts</span>
+                  </div>
+                  <div class="flex justify-between items-center bg-surface-container/40 px-3 py-2 rounded border border-outline-variant/10">
+                    <span class="text-on-surface-variant">API de synchronisation</span>
+                    <span class="font-bold text-primary font-mono text-[10px]">FastAPI (Asynchrone)</span>
+                  </div>
+                  <div class="flex justify-between items-center bg-surface-container/40 px-3 py-2 rounded border border-outline-variant/10">
+                    <span class="text-on-surface-variant">Chiffrement de base</span>
+                    <span class="font-bold text-primary font-mono text-[10px]">Fernet AES-128</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ==================== SLIDE 2: DIAGRAMME C4 ==================== -->
+        <div id="slide-content-2" class="slide-pane hidden space-y-6">
+          <div class="grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-8 items-start">
+            <!-- Diagram Column -->
+            <div class="glass p-6 space-y-6">
+              <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-primary text-[18px]">schema</span>
+                <h3 class="text-xs font-bold uppercase tracking-widest text-on-surface">
+                  Diagramme de Conteneurs (C4 Model) — Cliquer pour explorer
+                </h3>
+              </div>
+              
+              <div class="flex flex-col gap-6 relative select-none">
+                <!-- row 1: Client & Keychain -->
+                <div class="flex flex-col md:flex-row gap-6 justify-center">
+                  <!-- Node: Frontend Client -->
+                  <div id="arch-node-frontend" onclick="selectArchitectureNode('frontend')"
+                       class="arch-node flex-1 p-5 rounded-xl border border-outline-variant bg-surface-container/60 cursor-pointer transition-all hover:scale-[1.02] flex items-center gap-3">
+                    <div class="w-10 h-10 rounded bg-primary/10 flex items-center justify-center shrink-0">
+                      <span class="material-symbols-outlined text-primary text-2xl">javascript</span>
+                    </div>
+                    <div>
+                      <h4 class="text-xs font-bold text-on-surface">Client Frontend</h4>
+                      <p class="text-[10px] text-on-surface-variant">Vite + React SPA</p>
+                    </div>
+                  </div>
+
+                  <!-- Node: Keyring -->
+                  <div id="arch-node-keyring" onclick="selectArchitectureNode('keyring')"
+                       class="arch-node flex-1 p-5 rounded-xl border border-outline-variant bg-surface-container/60 cursor-pointer transition-all hover:scale-[1.02] flex items-center gap-3">
+                    <div class="w-10 h-10 rounded bg-secondary/10 flex items-center justify-center shrink-0">
+                      <span class="material-symbols-outlined text-secondary text-2xl">vpn_key</span>
+                    </div>
+                    <div>
+                      <h4 class="text-xs font-bold text-on-surface">OS Keychain</h4>
+                      <p class="text-[10px] text-on-surface-variant">Keychain natif (keyring)</p>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Connector link -->
+                <div class="flex justify-center h-4 items-center">
+                  <span class="material-symbols-outlined text-outline/30">arrow_downward</span>
+                </div>
+
+                <!-- row 2: Backend API -->
+                <div class="flex justify-center">
+                  <!-- Node: Backend API -->
+                  <div id="arch-node-backend" onclick="selectArchitectureNode('backend')"
+                       class="arch-node w-full md:w-[60%] p-5 rounded-xl border border-outline-variant bg-surface-container/60 cursor-pointer transition-all hover:scale-[1.02] flex items-center gap-3">
+                    <div class="w-10 h-10 rounded bg-primary/10 flex items-center justify-center shrink-0">
+                      <span class="material-symbols-outlined text-primary text-2xl font-bold">terminal</span>
+                    </div>
+                    <div class="flex-1">
+                      <h4 class="text-xs font-bold text-on-surface">Serveur API Backend</h4>
+                      <p class="text-[10px] text-on-surface-variant">Python + FastAPI (Asynchrone)</p>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Connector link -->
+                <div class="flex justify-center h-4 items-center">
+                  <span class="material-symbols-outlined text-outline/30">arrow_downward</span>
+                </div>
+
+                <!-- row 3: DB & Connectors -->
+                <div class="flex flex-col md:flex-row gap-6 justify-center">
+                  <!-- Node: SQLite DB -->
+                  <div id="arch-node-database" onclick="selectArchitectureNode('database')"
+                       class="arch-node flex-1 p-5 rounded-xl border border-outline-variant bg-surface-container/60 cursor-pointer transition-all hover:scale-[1.02] flex items-center gap-3">
+                    <div class="w-10 h-10 rounded bg-emerald-500/10 flex items-center justify-center shrink-0">
+                      <span class="material-symbols-outlined text-emerald-400 text-2xl">database</span>
+                    </div>
+                    <div>
+                      <h4 class="text-xs font-bold text-on-surface">Base de données</h4>
+                      <p class="text-[10px] text-on-surface-variant">SQLite local + Chiffrement Fernet</p>
+                    </div>
+                  </div>
+
+                  <!-- Connectors Group -->
+                  <div class="flex-1 flex flex-col gap-2">
+                    <div id="arch-node-enablebanking" onclick="selectArchitectureNode('enablebanking')"
+                         class="arch-node p-3 rounded-lg border border-outline-variant bg-surface-container/60 cursor-pointer transition-all hover:scale-[1.02] flex items-center gap-2 text-xs">
+                      <span class="material-symbols-outlined text-primary text-[16px]">account_balance</span>
+                      <span class="flex-1 font-semibold truncate">Sync Banques (Enable Banking)</span>
+                    </div>
+                    <div id="arch-node-traderepublic" onclick="selectArchitectureNode('traderepublic')"
+                         class="arch-node p-3 rounded-lg border border-outline-variant bg-surface-container/60 cursor-pointer transition-all hover:scale-[1.02] flex items-center gap-2 text-xs">
+                      <span class="material-symbols-outlined text-primary text-[16px]">trending_up</span>
+                      <span class="flex-1 font-semibold truncate">Sync Investissements (TR pytr)</span>
+                    </div>
+                    <div id="arch-node-prices" onclick="selectArchitectureNode('prices')"
+                         class="arch-node p-3 rounded-lg border border-outline-variant bg-surface-container/60 cursor-pointer transition-all hover:scale-[1.02] flex items-center gap-2 text-xs">
+                      <span class="material-symbols-outlined text-primary text-[16px]">monetization_on</span>
+                      <span class="flex-1 font-semibold truncate">Fédérateur Prix (yfinance / CG)</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Description Column -->
+            <div class="glass p-6 space-y-6">
+              <h3 class="text-[11px] font-bold uppercase tracking-widest text-on-surface border-b border-outline-variant/10 pb-3">
+                Description du composant
+              </h3>
+              
+              <div class="space-y-4">
+                <div>
+                  <h4 id="arch-details-title" class="text-sm font-bold text-primary mb-1">Nom du composant</h4>
+                  <p id="arch-details-role" class="text-xs text-on-surface-variant leading-relaxed">
+                    Sélectionnez un composant sur le diagramme de gauche pour inspecter son rôle et ses contraintes architecturales.
+                  </p>
+                </div>
+                
+                <div class="pt-4 border-t border-outline-variant/10 space-y-3 text-xs">
+                  <div>
+                    <span class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant block mb-0.5">Stack technique</span>
+                    <p id="arch-details-tech" class="text-on-surface font-semibold">—</p>
+                  </div>
+                  <div>
+                    <span class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant block mb-0.5">Règles critiques &amp; Sécurité</span>
+                    <p id="arch-details-rules" class="text-on-surface leading-relaxed">—</p>
+                  </div>
+                  <div>
+                    <span class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant block mb-0.5">Fichiers sources associés</span>
+                    <p id="arch-details-files" class="font-mono text-primary text-[10px] tracking-tight truncate">—</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ==================== SLIDE 3: CHIFFREMENT & SECURITE ==================== -->
+        <div id="slide-content-3" class="slide-pane hidden space-y-6">
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Left Side: Interactive Database Decryptor Simulator -->
+            <div class="glass p-6 space-y-6">
+              <div class="flex items-center justify-between border-b border-outline-variant/10 pb-3">
+                <div class="flex items-center gap-2">
+                  <span class="material-symbols-outlined text-primary text-[18px]">database</span>
+                  <h3 class="text-xs font-bold uppercase tracking-widest text-on-surface">Inspection de la Base SQLite</h3>
+                </div>
+                <!-- Interactive Toggle -->
+                <div class="flex items-center gap-2 bg-surface-container/60 px-2 py-1 rounded border border-outline-variant/20">
+                  <span class="text-[9px] font-bold uppercase tracking-widest text-on-surface-variant">Mode chiffré</span>
+                  <button id="crypto-toggle" onclick="toggleEncryptionSimulator()" 
+                          class="w-10 h-5 bg-primary/20 border border-primary/40 rounded-full p-0.5 transition-all duration-300 relative">
+                    <div id="crypto-toggle-dot" class="w-3.5 h-3.5 bg-primary rounded-full absolute right-0.5 top-0.5 transition-all duration-300"></div>
+                  </button>
+                </div>
+              </div>
+
+              <p class="text-xs text-on-surface-variant leading-relaxed">
+                Toutes les colonnes critiques (IBAN, soldes bruts, clés d'accès API) sont chiffrées en base via **Fernet (AES-128)**. Le code Python utilise des accesseurs transparents qui ne déchiffrent qu'à la volée en mémoire vive.
+              </p>
+
+              <div class="overflow-x-auto">
+                <table class="w-full text-left text-[10px] leading-relaxed">
+                  <thead>
+                    <tr class="border-b border-outline-variant/30 text-on-surface-variant font-bold uppercase tracking-wider">
+                      <th class="py-2">Compte</th>
+                      <th class="py-2">Banque</th>
+                      <th class="py-2">IBAN</th>
+                      <th class="py-2 text-right">Solde</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-outline-variant/10 text-on-surface">
+                    <tr>
+                      <td class="py-2.5 font-bold">Compte Courant</td>
+                      <td class="py-2.5">Boursorama</td>
+                      <td class="py-2.5 font-mono" id="db-row-1-iban">gAAAAABmX3K...</td>
+                      <td class="py-2.5 text-right font-mono font-bold text-primary" id="db-row-1-balance">gAAAAABmY8L...</td>
+                    </tr>
+                    <tr>
+                      <td class="py-2.5 font-bold">Livret A</td>
+                      <td class="py-2.5">Caisse d'Epargne</td>
+                      <td class="py-2.5 font-mono" id="db-row-2-iban">gAAAAABmP2D...</td>
+                      <td class="py-2.5 text-right font-mono font-bold text-primary" id="db-row-2-balance">gAAAAABmD9V...</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="p-3.5 bg-surface-container rounded-lg border border-outline-variant/20 text-xs flex gap-3 items-start">
+                <span class="material-symbols-outlined text-secondary" id="db-lock-icon">lock</span>
+                <div>
+                  <h4 class="font-bold text-[10px] uppercase tracking-widest text-on-surface" id="db-status-title">État de la table : Chiffré de bout en bout</h4>
+                  <p class="text-[10px] text-on-surface-variant leading-relaxed mt-0.5 font-normal" id="db-status-desc">
+                    Les valeurs réelles ne sont visibles par aucun processus système autre que Money Tracker. En cas d'extraction brute du fichier `db.sqlite3`, le contenu reste totalement indéchiffrable.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Right Side: Python Encapsulation Code -->
+            <div class="glass p-6 space-y-4">
+              <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-primary text-[18px]">code</span>
+                <h3 class="text-xs font-bold uppercase tracking-widest text-on-surface">Code Backend (SQLAlchemy + keyring)</h3>
+              </div>
+              <div class="bg-surface-container/60 p-4 rounded-xl border border-outline-variant/20 font-mono text-[9px] text-on-surface-variant overflow-x-auto leading-relaxed select-text">
+                <span class="text-purple-400">class</span> <span class="text-blue-400">BankAccount</span>(Base):<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;__tablename__ = <span class="text-yellow-400">"bank_accounts"</span><br><br>
+                &nbsp;&nbsp;&nbsp;&nbsp;<span class="text-gray-500"># Stockage de la colonne chiffrée</span><br>
+                &nbsp;&nbsp;&nbsp;&nbsp;balance_enc = Column(String, nullable=<span class="text-orange-400">True</span>)<br><br>
+                &nbsp;&nbsp;&nbsp;&nbsp;<span class="text-red-400">@property</span><br>
+                &nbsp;&nbsp;&nbsp;&nbsp;<span class="text-purple-400">def</span> <span class="text-blue-400">balance</span>(self) -&gt; float:<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="text-purple-400">if not</span> self.balance_enc:<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="text-purple-400">return</span> <span class="text-orange-400">0.0</span><br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="text-purple-400">return</span> float(decrypt_data(self.balance_enc))<br><br>
+                &nbsp;&nbsp;&nbsp;&nbsp;<span class="text-red-400">@balance.setter</span><br>
+                &nbsp;&nbsp;&nbsp;&nbsp;<span class="text-purple-400">def</span> <span class="text-blue-400">balance</span>(self, value: float):<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;self.balance_enc = encrypt_data(str(value))
+              </div>
+              <p class="text-xs text-on-surface-variant leading-relaxed">
+                <span class="font-bold text-on-surface">Zéro clé API en clair :</span> Le secret maître Fernet est lui-même extrait au démarrage du Keychain OS natif via la bibliothèque `keyring`. Le mot de passe n'apparaît ni dans les commits, ni dans les fichiers `.env`.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- ==================== SLIDE 4: MUTEX & CONCURRENCY ==================== -->
+        <div id="slide-content-4" class="slide-pane hidden space-y-6">
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Left Side: Interactive Mutex timeline Simulator -->
+            <div class="glass p-6 space-y-6">
+              <div class="flex items-center justify-between border-b border-outline-variant/10 pb-3">
+                <div class="flex items-center gap-2">
+                  <span class="material-symbols-outlined text-primary text-[18px]">lock_reset</span>
+                  <h3 class="text-xs font-bold uppercase tracking-widest text-on-surface">Simulateur de Verrou Mutex</h3>
+                </div>
+                <button onclick="runMutexSimulation()" id="btn-run-mutex-sim"
+                        class="px-3 py-1.5 bg-primary text-on-primary font-bold text-[10px] uppercase tracking-wider rounded-sm active:scale-95 transition-all">
+                  Lancer Simulation Concurrentielle
+                </button>
+              </div>
+
+              <p class="text-xs text-on-surface-variant leading-relaxed">
+                SQLite n'autorise qu'un seul écrivain à la fois. Pour éliminer les erreurs `database is locked` lors des synchronisations automatiques multiples, un **Mutex unique asynchrone (`asyncio.Lock`)** orchestre l'accès au moteur de sync.
+              </p>
+
+              <!-- Simulation Console area -->
+              <div class="space-y-3 font-mono text-[9px]">
+                
+                <!-- Mutex State widget -->
+                <div class="flex items-center justify-between bg-surface-container-high/40 p-3 rounded border border-outline-variant/20">
+                  <span class="text-on-surface-variant font-bold">État du Mutex _SYNC_LOCK</span>
+                  <div class="flex items-center gap-1.5" id="mutex-lock-badge">
+                    <span class="material-symbols-outlined text-emerald-400 text-[14px]">lock_open</span>
+                    <span class="text-emerald-400 font-bold uppercase text-[9px]">Libre (Unlocked)</span>
+                  </div>
+                </div>
+
+                <!-- Sync task A stream -->
+                <div id="mutex-task-a" class="bg-surface-container/60 p-3 rounded border border-outline-variant/10 space-y-1.5 opacity-50 transition-opacity">
+                  <div class="flex justify-between items-center">
+                    <span class="text-primary font-bold">Tâche A : Sync Banque DSP2</span>
+                    <span class="text-[8px] px-1 bg-outline-variant/40 rounded text-on-surface-variant font-bold" id="task-a-status">Idle</span>
+                  </div>
+                  <div class="w-full bg-outline-variant/10 h-1 rounded overflow-hidden">
+                    <div id="task-a-bar" class="bg-primary h-full w-0 transition-all duration-300"></div>
+                  </div>
+                </div>
+
+                <!-- Sync task B stream -->
+                <div id="mutex-task-b" class="bg-surface-container/60 p-3 rounded border border-outline-variant/10 space-y-1.5 opacity-50 transition-opacity">
+                  <div class="flex justify-between items-center">
+                    <span class="text-secondary font-bold">Tâche B : Sync Trade Republic</span>
+                    <span class="text-[8px] px-1 bg-outline-variant/40 rounded text-on-surface-variant font-bold" id="task-b-status">Idle</span>
+                  </div>
+                  <div class="w-full bg-outline-variant/10 h-1 rounded overflow-hidden">
+                    <div id="task-b-bar" class="bg-secondary h-full w-0 transition-all duration-300"></div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+            <!-- Right Side: Explanatory Details -->
+            <div class="glass p-6 space-y-5">
+              <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-primary text-[18px]">verified_user</span>
+                <h3 class="text-xs font-bold uppercase tracking-widest text-on-surface">Pourquoi cette mécanique est robuste ?</h3>
+              </div>
+              <ul class="text-xs text-on-surface-variant space-y-3.5 leading-relaxed">
+                <li class="flex items-start gap-2.5">
+                  <span class="material-symbols-outlined text-primary text-[16px] shrink-0">timer</span>
+                  <div>
+                    <strong class="text-on-surface block mb-0.5">Évite les conflits d'écritures :</strong>
+                    La seconde tâche attend sagement que la première tâche ait fini de valider ses transactions SQLite avant d'acquérir le verrou.
+                  </div>
+                </li>
+                <li class="flex items-start gap-2.5">
+                  <span class="material-symbols-outlined text-primary text-[16px] shrink-0">crisis_alert</span>
+                  <div>
+                    <strong class="text-on-surface block mb-0.5">Timeout et résilience de 60s :</strong>
+                    Si un connecteur externe plante (DSP2 en panne, OTP expiré), la tâche lève une exception sécurisée et libère le verrou (`finally: lock.release()`) pour ne pas bloquer les synchronisations suivantes.
+                  </div>
+                </li>
+                <li class="flex items-start gap-2.5">
+                  <span class="material-symbols-outlined text-primary text-[16px] shrink-0">shield</span>
+                  <div>
+                    <strong class="text-on-surface block mb-0.5">Cooldown restrictif de 60s :</strong>
+                    Le backend rejette les requêtes de sync trop rapprochées dans le temps pour économiser l'usage réseau et éviter les bannissements d'IP (rate limit).
+                  </div>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- ==================== SLIDE 5: METHODOLOGIE bMAD ==================== -->
+        <div id="slide-content-5" class="slide-pane hidden space-y-6">
+          <div class="glass p-6 space-y-6">
+            <div class="flex items-center gap-2.5 border-b border-outline-variant/10 pb-3">
+              <span class="material-symbols-outlined text-primary text-[18px]">engineering</span>
+              <h3 class="text-xs font-bold uppercase tracking-widest text-on-surface">Behavior-Driven Model Agent Development (bMAD)</h3>
+            </div>
+            
+            <p class="text-xs text-on-surface-variant leading-relaxed">
+              La méthodologie **bMAD** est un cadre d'ingénierie rigoureux qui structure le développement collaboratif entre des agents d'IA autonomes et l'humain. Elle repose sur des spécifications formalisées permettant de supprimer les régressions.
+            </p>
+
+            <!-- Grid Infography -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <!-- Phase 1 -->
+              <div onclick="selectBmadPhase(1)" id="bmad-card-1"
+                   class="bmad-phase-card p-4 rounded-xl border border-primary bg-primary/5 cursor-pointer transition-all hover:scale-[1.02] space-y-2">
+                <span class="text-[10px] font-bold uppercase tracking-widest text-primary">Phase 1</span>
+                <h4 class="text-xs font-bold text-on-surface">PRD &amp; Specs</h4>
+                <p class="text-[10px] text-on-surface-variant leading-relaxed">
+                  Spécification stricte de 64 exigences fonctionnelles dans `prd.md` comme unique source de vérité.
+                </p>
+              </div>
+
+              <!-- Phase 2 -->
+              <div onclick="selectBmadPhase(2)" id="bmad-card-2"
+                   class="bmad-phase-card p-4 rounded-xl border border-outline-variant/20 bg-surface-container/30 cursor-pointer transition-all hover:scale-[1.02] space-y-2">
+                <span class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Phase 2</span>
+                <h4 class="text-xs font-bold text-on-surface">ADR Design</h4>
+                <p class="text-[10px] text-on-surface-variant leading-relaxed">
+                  Consensus sur 10 Architectural Decision Records (ADR) archivés dans `architecture.md`.
+                </p>
+              </div>
+
+              <!-- Phase 3 -->
+              <div onclick="selectBmadPhase(3)" id="bmad-card-3"
+                   class="bmad-phase-card p-4 rounded-xl border border-outline-variant/20 bg-surface-container/30 cursor-pointer transition-all hover:scale-[1.02] space-y-2">
+                <span class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Phase 3</span>
+                <h4 class="text-xs font-bold text-on-surface">Sprints Roadmaps</h4>
+                <p class="text-[10px] text-on-surface-variant leading-relaxed">
+                  Backlog de sprint découpé en Epics et suivi de tâches structuré (`sprint-status.yaml`).
+                </p>
+              </div>
+
+              <!-- Phase 4 -->
+              <div onclick="selectBmadPhase(4)" id="bmad-card-4"
+                   class="bmad-phase-card p-4 rounded-xl border border-outline-variant/20 bg-surface-container/30 cursor-pointer transition-all hover:scale-[1.02] space-y-2">
+                <span class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Phase 4</span>
+                <h4 class="text-xs font-bold text-on-surface">Agent Autonome</h4>
+                <p class="text-[10px] text-on-surface-variant leading-relaxed">
+                  Exécution par un agent autonome avec validation systématique des tests de non-régression.
+                </p>
+              </div>
+            </div>
+
+            <!-- Focus area for bMAD phases -->
+            <div class="p-4 bg-surface-container/60 border border-outline-variant/20 rounded-xl space-y-2">
+              <h4 id="bmad-focus-title" class="text-xs font-bold text-primary">Phase 1 : PRD &amp; Spécifications fonctionnelles strictes</h4>
+              <p id="bmad-focus-desc" class="text-xs text-on-surface-variant leading-relaxed">
+                Avant d'écrire la première ligne de code, l'ensemble des règles de gestion financière, des calculs d'abonnements, de résilience locale et de synchronisation d'investissements ont été fixés dans un document de PRD. Cette préparation limite les hallucinations et garantit la cohérence du développement d'IA.
+              </p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </main>
+
+  <!-- ==================== MODALS WRAPPER ==================== -->
+
+  <!-- Modal: Manual Account creation -->
+  <div id="modal-manual-account" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="glass-modal w-full max-w-md p-8">
+      <div class="flex justify-between items-center mb-6">
+        <h2 class="text-base font-bold text-on-surface">Ajouter un compte manuel</h2>
+        <button onclick="closeModal('modal-manual-account')">
+          <span class="material-symbols-outlined text-on-surface-variant">close</span>
+        </button>
+      </div>
+      <div class="space-y-4">
+        <div>
+          <label class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant block mb-1.5">Nom du compte</label>
+          <input type="text" id="manual-acc-name" class="w-full bg-surface-container border border-outline-variant/20 rounded-sm px-3 py-2 text-sm text-on-surface focus:outline-none" placeholder="ex: Livret A">
+        </div>
+        <div>
+          <label class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant block mb-1.5">Banque / Institution</label>
+          <input type="text" id="manual-acc-institution" class="w-full bg-surface-container border border-outline-variant/20 rounded-sm px-3 py-2 text-sm text-on-surface focus:outline-none" placeholder="ex: Caisse d'Epargne">
+        </div>
+        <div>
+          <label class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant block mb-1.5">Solde initial (€)</label>
+          <input type="number" id="manual-acc-balance" class="w-full bg-surface-container border border-outline-variant/20 rounded-sm px-3 py-2 text-sm text-on-surface focus:outline-none" placeholder="1500.00">
+        </div>
+        <div>
+          <label class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant block mb-1.5">Type de compte</label>
+          <select id="manual-acc-type" class="w-full bg-surface-container border border-outline-variant/20 rounded-sm px-3 py-2 text-sm text-on-surface focus:outline-none">
+            <option value="checking">Courant</option>
+            <option value="savings" selected>Épargne</option>
+            <option value="investment">Investissement</option>
+          </select>
+        </div>
+      </div>
+      <button onclick="submitManualAccount()"
+              class="mt-6 w-full py-2.5 bg-primary text-on-primary text-sm font-bold rounded-sm active:scale-95 transition-all">
+        Ajouter le compte
+      </button>
+    </div>
+  </div>
+
+  <!-- Modal: Connect bank (GoCardless Simulator flow) -->
+  <div id="modal-connect-bank" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="glass-modal w-full max-w-lg flex flex-col" style="max-height: 85vh;">
+      
+      <!-- Modal Header -->
+      <div class="flex justify-between items-center px-8 pt-7 pb-4 shrink-0">
+        <div>
+          <h2 class="text-base font-bold text-on-surface">Connecter un compte</h2>
+          <p id="connect-step-title" class="text-[10px] text-primary mt-0.5">1 — Choisir sa banque</p>
+        </div>
+        <button onclick="closeModal('modal-connect-bank')" class="text-on-surface-variant hover:text-on-surface">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+
+      <!-- Flow Container -->
+      <div class="flex-1 overflow-hidden" id="connect-flow-container">
+        
+        <!-- Step 1: Search and Select -->
+        <div id="connect-step-search" class="flex flex-col h-full px-8 pb-7 overflow-hidden">
+          <div class="flex gap-2 mb-3 shrink-0">
+            <select id="connect-country" onchange="filterBankList()"
+                    class="bg-surface-container border border-outline-variant/20 rounded-sm px-2 py-2 text-xs text-on-surface focus:outline-none">
+              <option value="fr">🇫🇷 France</option>
+              <option value="de">🇩🇪 Allemagne</option>
+              <option value="gb">🇬🇧 Royaume-Uni</option>
+            </select>
+            <input type="text" id="connect-query" oninput="filterBankList()"
+                   placeholder="Rechercher une banque..."
+                   class="flex-1 bg-surface-container border border-outline-variant/20 rounded-sm px-3 py-2 text-sm text-on-surface focus:outline-none">
+          </div>
+          <div class="flex-1 overflow-y-auto space-y-1 pr-1" id="connect-banks-list">
+            <!-- Rendered in script -->
+          </div>
+        </div>
+
+        <!-- Step 2: Name the Account -->
+        <div id="connect-step-name" class="hidden px-8 pb-7 space-y-5">
+          <div class="flex items-center gap-3 p-3 bg-surface-container rounded-sm">
+            <div class="w-8 h-8 rounded bg-surface-container-high flex items-center justify-center">
+              <span class="material-symbols-outlined text-primary text-[16px]">account_balance</span>
+            </div>
+            <span id="selected-bank-name" class="text-sm font-semibold text-on-surface">Société Générale</span>
+            <button onclick="connectSetStep('search')" class="ml-auto text-[10px] text-primary hover:underline">Changer</button>
+          </div>
+          <div>
+            <label class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant block mb-2">Nom de ce compte dans Money Tracker</label>
+            <input type="text" id="connect-account-name" class="w-full bg-surface-container border border-outline-variant/20 rounded-sm px-3 py-2 text-sm text-on-surface focus:outline-none" placeholder="ex: SG Compte Courant">
+          </div>
+          <button onclick="executeBankOAuthRedirect()" class="w-full py-2.5 bg-primary text-on-primary text-sm font-bold rounded-sm active:scale-95 transition-all">
+            Initier la connexion sécurisée →
+          </button>
+        </div>
+
+        <!-- Step 3: Simulating External Auth page -->
+        <div id="connect-step-auth" class="hidden px-8 pb-7 space-y-5 text-center">
+          <div class="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-2">
+            <span class="material-symbols-outlined text-primary text-3xl animate-bounce">open_in_new</span>
+          </div>
+          <div>
+            <p class="text-sm text-on-surface font-semibold mb-2">Simulation de liaison DSP2</p>
+            <p class="text-xs text-on-surface-variant max-w-sm mx-auto">
+              Dans la version réelle, l'utilisateur est redirigé vers l'interface de sa banque par le connecteur GoCardless / Bankin' afin d'authentifier sa transaction.
+            </p>
+          </div>
+          <div class="p-3 bg-surface-container-high rounded border border-outline-variant/30 text-xs text-on-surface-variant max-w-sm mx-auto">
+            Statut : En attente d'approbation banque client...
+          </div>
+          <button onclick="executeConfirmBankFlow()" class="block w-full py-2.5 bg-primary text-on-primary text-sm font-bold rounded-sm text-center active:scale-95 transition-all">
+            Simuler l'autorisation bancaire client (Succès) →
+          </button>
+        </div>
+
+        <!-- Step 4: Confirm and Finalize -->
+        <div id="connect-step-confirm" class="hidden px-8 pb-7 space-y-5 text-center">
+          <div class="w-16 h-16 bg-emerald-500/15 rounded-full flex items-center justify-center mx-auto mb-2 border border-emerald-500/30">
+            <span class="material-symbols-outlined text-emerald-400 text-3xl">check_circle</span>
+          </div>
+          <p class="text-sm text-on-surface font-semibold">Liaison réussie !</p>
+          <p class="text-xs text-on-surface-variant max-w-sm mx-auto">
+            Les clés d'accès chiffrées ont été configurées. L'application va lire les soldes bancaires initiaux et commencer la surveillance locale.
+          </p>
+          <button onclick="submitConnectBankFlow()" class="w-full py-2.5 bg-primary text-on-primary text-sm font-bold rounded-sm active:scale-95 transition-all">
+            Confirmer et synchroniser le solde →
+          </button>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Modal: Add Investment Position -->
+  <div id="modal-add-holding" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="glass-modal w-full max-w-md p-8">
+      <div class="flex justify-between items-center mb-6">
+        <h2 class="text-base font-bold text-on-surface">Ajouter un investissement</h2>
+        <button onclick="closeModal('modal-add-holding')">
+          <span class="material-symbols-outlined text-on-surface-variant">close</span>
+        </button>
+      </div>
+      <div class="space-y-4">
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant block mb-1.5">Plateforme</label>
+            <select id="invest-platform" class="w-full bg-surface-container border border-outline-variant/20 rounded-sm px-3 py-2 text-sm text-on-surface focus:outline-none">
+              <option value="trade_republic">Trade Republic</option>
+              <option value="revolut">Revolut</option>
+              <option value="manual">Manuel</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant block mb-1.5">Type d'actif</label>
+            <select id="invest-type" class="w-full bg-surface-container border border-outline-variant/20 rounded-sm px-3 py-2 text-sm text-on-surface focus:outline-none">
+              <option value="stock">Action</option>
+              <option value="etf" selected>ETF</option>
+              <option value="crypto">Cryptomonnaie</option>
+              <option value="bond">Obligation</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant block mb-1.5">Nom de l'actif</label>
+          <input type="text" id="invest-name" class="w-full bg-surface-container border border-outline-variant/20 rounded-sm px-3 py-2 text-sm text-on-surface focus:outline-none" placeholder="ex: Vanguard S&P 500">
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant block mb-1.5">Ticker / Symbole</label>
+            <input type="text" id="invest-ticker" class="w-full bg-surface-container border border-outline-variant/20 rounded-sm px-3 py-2 text-sm text-on-surface focus:outline-none" placeholder="VUAA.L">
+          </div>
+          <div>
+            <label class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant block mb-1.5">Code ISIN</label>
+            <input type="text" id="invest-isin" class="w-full bg-surface-container border border-outline-variant/20 rounded-sm px-3 py-2 text-sm text-on-surface focus:outline-none" placeholder="IE00BFMXXD54">
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant block mb-1.5">Quantité (parts)</label>
+            <input type="number" id="invest-qty" step="any" class="w-full bg-surface-container border border-outline-variant/20 rounded-sm px-3 py-2 text-sm text-on-surface focus:outline-none" placeholder="10">
+          </div>
+          <div>
+            <label class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant block mb-1.5">Prix d'achat moyen (€)</label>
+            <input type="number" id="invest-avg-buy" step="any" class="w-full bg-surface-container border border-outline-variant/20 rounded-sm px-3 py-2 text-sm text-on-surface focus:outline-none" placeholder="75.40">
+          </div>
+        </div>
+        <div>
+          <label class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant block mb-1.5">Prix actuel (€)</label>
+          <input type="number" id="invest-current-price" step="any" class="w-full bg-surface-container border border-outline-variant/20 rounded-sm px-3 py-2 text-sm text-on-surface focus:outline-none" placeholder="82.10">
+        </div>
+      </div>
+      <button onclick="submitInvestment()"
+              class="mt-6 w-full py-2.5 bg-primary text-on-primary text-sm font-bold rounded-sm active:scale-95 transition-all">
+        Ajouter au portefeuille
+      </button>
+    </div>
+  </div>
+
+  <!-- Modal: Add Subscription -->
+  <div id="modal-add-subscription" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="glass-modal w-full max-w-md p-8">
+      <div class="flex justify-between items-center mb-6">
+        <h2 class="text-base font-bold text-on-surface">Ajouter un abonnement</h2>
+        <button onclick="closeModal('modal-add-subscription')">
+          <span class="material-symbols-outlined text-on-surface-variant">close</span>
+        </button>
+      </div>
+      <div class="space-y-4">
+        <div>
+          <label class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant block mb-1.5">Nom du service</label>
+          <input type="text" id="sub-name" class="w-full bg-surface-container border border-outline-variant/20 rounded-sm px-3 py-2 text-sm text-on-surface focus:outline-none" placeholder="Netflix, Spotify...">
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant block mb-1.5">Montant (€)</label>
+            <input type="number" id="sub-amount" step="0.01" class="w-full bg-surface-container border border-outline-variant/20 rounded-sm px-3 py-2 text-sm text-on-surface focus:outline-none" placeholder="9.99">
+          </div>
+          <div>
+            <label class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant block mb-1.5">Jour de facturation (1–31)</label>
+            <input type="number" id="sub-billing-day" min="1" max="31" class="w-full bg-surface-container border border-outline-variant/20 rounded-sm px-3 py-2 text-sm text-on-surface focus:outline-none" placeholder="28">
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant block mb-1.5">Périodicité</label>
+            <select id="sub-cycle" class="w-full bg-surface-container border border-outline-variant/20 rounded-sm px-3 py-2 text-sm text-on-surface focus:outline-none">
+              <option value="monthly" selected>Mensuel</option>
+              <option value="yearly">Annuel</option>
+              <option value="weekly">Hebdomadaire</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant block mb-1.5">Catégorie</label>
+            <select id="sub-category" class="w-full bg-surface-container border border-outline-variant/20 rounded-sm px-3 py-2 text-sm text-on-surface focus:outline-none">
+              <option value="streaming">Streaming</option>
+              <option value="cloud">Cloud / Stockage</option>
+              <option value="sport">Sport</option>
+              <option value="productivité">Productivité</option>
+              <option value="IA">IA</option>
+              <option value="gaming">Gaming</option>
+              <option value="autre" selected>Autre</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant block mb-1.5">Couleur d'identification</label>
+          <div class="flex gap-2" id="sub-color-palette">
+            <button onclick="setSubColorForm('#E50914')" class="color-dot w-7 h-7 rounded-full border-2 border-white scale-110" style="background:#E50914" data-color="#E50914"></button>
+            <button onclick="setSubColorForm('#1DB954')" class="color-dot w-7 h-7 rounded-full border-2 border-transparent" style="background:#1DB954" data-color="#1DB954"></button>
+            <button onclick="setSubColorForm('#10A37F')" class="color-dot w-7 h-7 rounded-full border-2 border-transparent" style="background:#10A37F" data-color="#10A37F"></button>
+            <button onclick="setSubColorForm('#00A8E8')" class="color-dot w-7 h-7 rounded-full border-2 border-transparent" style="background:#00A8E8" data-color="#00A8E8"></button>
+            <button onclick="setSubColorForm('#ffb77d')" class="color-dot w-7 h-7 rounded-full border-2 border-transparent" style="background:#ffb77d" data-color="#ffb77d"></button>
+            <button onclick="setSubColorForm('#a855f7')" class="color-dot w-7 h-7 rounded-full border-2 border-transparent" style="background:#a855f7" data-color="#a855f7"></button>
+          </div>
+        </div>
+      </div>
+      <button onclick="submitSubscription()"
+              class="mt-6 w-full py-2.5 bg-primary text-on-primary text-sm font-bold rounded-sm active:scale-95 transition-all">
+        Créer l'abonnement
+      </button>
+    </div>
+  </div>
+
+  <!-- Modal: Save Scenario -->
+  <div id="modal-save-scenario" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="glass-modal w-full max-w-sm p-6">
+      <h3 class="text-sm font-bold mb-4">Sauvegarder le scénario</h3>
+      <p class="text-[10px] text-on-surface-variant mb-4">
+        Le scénario sera enregistré localement et pourra être comparé à d'autres simulations.
+      </p>
+      <input type="text" id="scenario-name" placeholder="ex: Achat Immobilier 10a"
+             class="w-full bg-surface-container border border-outline-variant/20 rounded-sm px-3 py-2 text-sm text-on-surface focus:outline-none mb-4">
+      <div class="flex gap-2">
+        <button onclick="closeModal('modal-save-scenario')" 
+                class="flex-1 py-2 text-xs text-on-surface-variant border border-outline-variant/20 rounded-sm hover:bg-surface-container">
+          Annuler
+        </button>
+        <button onclick="submitSaveScenario()" 
+                class="flex-1 py-2 text-xs font-bold bg-primary text-on-primary rounded-sm active:scale-95 transition-all">
+          Enregistrer
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Trade Republic Sync Live console simulator -->
+  <div id="modal-tr-sync-console" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 select-none">
+    <div class="glass-modal w-full max-w-lg p-6 font-mono text-xs">
+      <div class="flex justify-between items-center mb-4 border-b border-outline-variant/20 pb-2">
+        <span class="text-primary font-bold">Terminal Sync — Trade Republic API</span>
+        <div class="flex gap-1.5">
+          <span class="w-3 h-3 rounded-full bg-tertiary"></span>
+          <span class="w-3 h-3 rounded-full bg-yellow-500"></span>
+          <span class="w-3 h-3 rounded-full bg-emerald-400"></span>
+        </div>
+      </div>
+      <div id="sync-console-logs" class="space-y-1 h-48 overflow-y-auto mb-4 text-[#a3b8cc] scrollbar-thin">
+        <!-- Lines printed via script -->
+      </div>
+      <div class="w-full bg-surface-container rounded-full h-1 overflow-hidden">
+        <div id="sync-console-progress" class="bg-primary h-full transition-all duration-300" style="width: 0%;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== FLOATING TOASTS ==================== -->
+  <div id="undo-toast" class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-50 fade-up" style="min-width: 320px;">
+    <div style="background: rgba(28, 28, 30, 0.85); backdrop-filter: blur(20px) saturate(180%); -webkit-backdrop-filter: blur(20px) saturate(180%); border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; box-shadow: 0 8px 32px rgba(0,0,0,0.4); overflow: hidden;">
+      <div class="flex items-center justify-between gap-4 px-5 py-4">
+        <div class="flex items-center gap-3">
+          <span class="material-symbols-outlined text-[18px] text-tertiary">delete</span>
+          <p class="text-sm font-semibold text-white">
+            <span class="text-on-surface-variant font-normal">Suppression de </span><span id="toast-item-name">Abonnement</span>
+          </p>
+        </div>
+        <button onclick="triggerUndoDeleteSub()" class="text-xs font-bold text-primary hover:underline whitespace-nowrap px-2 py-1 rounded-sm hover:bg-primary/10">
+          Annuler
+        </button>
+      </div>
+      <div class="h-0.5 bg-white/10">
+        <div id="toast-progress-bar" class="h-full bg-primary" style="width: 100%;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== CORE SIMULATOR SCRIPTS ==================== -->
+  <script>
+    // ==================== STATE MANAGEMENT ====================
+    
+    // Initial mock data templates
+    const DEFAULT_ACCOUNTS = [
+      { id: 'acc1', name: 'SG Compte Courant', institution: 'SOCIETE_GENERALE_FR', balance: 3450.00, account_type: 'checking', currency: 'EUR', last_synced: new Date().toISOString() },
+      { id: 'acc2', name: 'Revolut Pocket', institution: 'REVOLUT_LT', balance: 1250.00, account_type: 'checking', currency: 'EUR', last_synced: new Date().toISOString() },
+      { id: 'acc3', name: 'Livret A', institution: 'manual', balance: 12000.00, account_type: 'savings', currency: 'EUR', last_synced: new Date().toISOString() },
+      { id: 'acc4', name: 'TR Cash Account', institution: 'TRADE_REPUBLIC_DE', balance: 450.00, account_type: 'investment', currency: 'EUR', last_synced: new Date().toISOString() }
+    ];
+
+    const DEFAULT_INVESTMENTS = [
+      { id: 'inv1', name: 'iShares MSCI World ETF', ticker: 'IWDA.AS', isin: 'IE00B4L5Y983', quantity: 80, avg_buy_price: 78.50, current_price: 88.20, asset_type: 'etf', platform: 'trade_republic', last_synced: new Date().toISOString() },
+      { id: 'inv2', name: 'Bitcoin', ticker: 'BTC-EUR', isin: 'BTC', quantity: 0.25, avg_buy_price: 52000.00, current_price: 61200.00, asset_type: 'crypto', platform: 'revolut', last_synced: new Date().toISOString() },
+      { id: 'inv3', name: 'Apple Inc.', ticker: 'AAPL', isin: 'US0378331005', quantity: 15, avg_buy_price: 165.00, current_price: 182.30, asset_type: 'stock', platform: 'trade_republic', last_synced: new Date().toISOString() }
+    ];
+
+    const DEFAULT_SUBSCRIPTIONS = [
+      { id: 'sub1', name: 'Netflix Premium', amount: 19.99, billing_day: 15, billing_cycle: 'monthly', category: 'streaming', color: '#E50914', status: 'active' },
+      { id: 'sub2', name: 'Spotify Family', amount: 17.99, billing_day: 28, billing_cycle: 'monthly', category: 'streaming', color: '#1DB954', status: 'active' },
+      { id: 'sub3', name: 'ChatGPT Plus', amount: 22.00, billing_day: 10, billing_cycle: 'monthly', category: 'IA', color: '#10A37F', status: 'active' },
+      { id: 'sub4', name: 'Amazon Prime', amount: 69.90, billing_day: 5, billing_cycle: 'yearly', category: 'autre', color: '#00A8E8', status: 'active' }
+    ];
+
+    const DEFAULT_SCENARIOS = [
+      { id: 'scen1', name: 'Plan Épargne Retraite', capital_initial: 15000, apport_mensuel: 400, taux_rendement: 8.0, horizon_annees: 25 }
+    ];
+
+    const DEFAULT_HISTORY = [17400, 18100, 19500, 21200, 22800];
+
+    // Local state container
+    let state = {
+      accounts: [],
+      investments: [],
+      subscriptions: [],
+      scenarios: [],
+      history: [],
+      isOffline: false,
+      isLargeDb: false,
+      apiKey: 'mt_live_d8a14b5c77ef10a28f4bc34a1'
+    };
+
+    function loadState() {
+      try {
+        state.accounts = JSON.parse(localStorage.getItem('mt_demo_accounts')) || DEFAULT_ACCOUNTS;
+        state.investments = JSON.parse(localStorage.getItem('mt_demo_investments')) || DEFAULT_INVESTMENTS;
+        state.subscriptions = JSON.parse(localStorage.getItem('mt_demo_subscriptions')) || DEFAULT_SUBSCRIPTIONS;
+        state.scenarios = JSON.parse(localStorage.getItem('mt_demo_scenarios')) || DEFAULT_SCENARIOS;
+        state.history = JSON.parse(localStorage.getItem('mt_demo_history')) || DEFAULT_HISTORY;
+        state.isOffline = localStorage.getItem('mt_demo_is_offline') === 'true';
+        state.isLargeDb = localStorage.getItem('mt_demo_is_large_db') === 'true';
+        state.apiKey = localStorage.getItem('mt_demo_api_key') || 'mt_live_d8a14b5c77ef10a28f4bc34a1';
+      } catch (e) {
+        state.accounts = [...DEFAULT_ACCOUNTS];
+        state.investments = [...DEFAULT_INVESTMENTS];
+        state.subscriptions = [...DEFAULT_SUBSCRIPTIONS];
+        state.scenarios = [...DEFAULT_SCENARIOS];
+        state.history = [...DEFAULT_HISTORY];
+      }
+      recalculateDerivedData();
+    }
+
+    function saveState() {
+      localStorage.setItem('mt_demo_accounts', JSON.stringify(state.accounts));
+      localStorage.setItem('mt_demo_investments', JSON.stringify(state.investments));
+      localStorage.setItem('mt_demo_subscriptions', JSON.stringify(state.subscriptions));
+      localStorage.setItem('mt_demo_scenarios', JSON.stringify(state.scenarios));
+      localStorage.setItem('mt_demo_history', JSON.stringify(state.history));
+      localStorage.setItem('mt_demo_is_offline', state.isOffline.toString());
+      localStorage.setItem('mt_demo_is_large_db', state.isLargeDb.toString());
+      localStorage.setItem('mt_demo_api_key', state.apiKey);
+    }
+
+    // Derived states
+    let totalBank = 0;
+    let totalInvestments = 0;
+    let totalNetWorth = 0;
+    let investedCapital = 0;
+    let totalPnlAbsolute = 0;
+    let totalPnlPercent = 0;
+
+    function recalculateDerivedData() {
+      // 1. Bank Accounts total
+      totalBank = state.accounts.reduce((sum, a) => sum + a.balance, 0);
+
+      // 2. Investments total & P&L
+      totalInvestments = 0;
+      investedCapital = 0;
+      state.investments.forEach(inv => {
+        const val = inv.quantity * inv.current_price;
+        const cost = inv.quantity * inv.avg_buy_price;
+        totalInvestments += val;
+        investedCapital += cost;
+      });
+      totalPnlAbsolute = totalInvestments - investedCapital;
+      totalPnlPercent = investedCapital > 0 ? (totalPnlAbsolute / investedCapital) * 100 : 0;
+
+      // 3. Net worth
+      totalNetWorth = totalBank + totalInvestments;
+    }
+
+    // ==================== ROUTING / TAB MANAGER ====================
+    let activeTab = 'dashboard';
+
+    function switchTab(tabId) {
+      if (state.isOffline && tabId !== 'settings') {
+        showOfflineScreen();
+        return;
+      }
+      activeTab = tabId;
+      
+      // Update sidebar styling
+      document.querySelectorAll('.nav-btn').forEach(btn => {
+        btn.className = "nav-btn w-full flex items-center gap-3 px-4 py-3 text-left transition-colors duration-150 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high font-semibold";
+      });
+      const activeBtn = document.getElementById(`nav-${tabId}`);
+      if (activeBtn) {
+        if (tabId === 'settings') {
+          activeBtn.className = "nav-btn flex items-center gap-3 px-2 py-2 text-sm transition-colors w-full text-primary font-semibold";
+        } else {
+          activeBtn.className = "nav-btn w-full flex items-center gap-3 px-4 py-3 text-left transition-colors duration-150 text-primary bg-surface-container-high border-r-2 border-primary font-semibold";
+        }
+      }
+
+      // Hide all tabs, show target
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+      document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+
+      // Update header title
+      const titles = {
+        dashboard: "Vue d'ensemble",
+        accounts: "Comptes bancaires",
+        investments: "Investissements",
+        subscriptions: "Abonnements",
+        forecast: "Forecast & Simulations",
+        architecture: "Architecture & Méthode bMAD",
+        settings: "Paramètres"
+      };
+      document.getElementById('header-title').textContent = titles[tabId] || "Money Tracker";
+
+      // Trigger specific re-renders
+      if (tabId === 'dashboard') {
+        renderDashboard();
+      } else if (tabId === 'accounts') {
+        renderAccountsPage();
+      } else if (tabId === 'investments') {
+        renderInvestmentsPage();
+      } else if (tabId === 'subscriptions') {
+        renderSubscriptionsPage();
+      } else if (tabId === 'forecast') {
+        initForecastPage();
+      } else if (tabId === 'architecture') {
+        goToSlide(1);
+      } else if (tabId === 'settings') {
+        renderSettingsPage();
+      }
+    }
+
+    // ==================== OFFLINE ENGINE ====================
+    function toggleSimulatedOffline(status) {
+      state.isOffline = status;
+      saveState();
+      if (status) {
+        showOfflineScreen();
+      } else {
+        hideOfflineScreen();
+        switchTab(activeTab);
+      }
+    }
+
+    function showOfflineScreen() {
+      document.getElementById('offline-screen').classList.remove('hidden');
+    }
+    function hideOfflineScreen() {
+      document.getElementById('offline-screen').classList.add('hidden');
+    }
+
+    function toggleSimulatedLargeDb() {
+      state.isLargeDb = !state.isLargeDb;
+      saveState();
+      renderSettingsPage();
+      renderAlerts();
+    }
+
+    // ==================== REUSABLE FORMATTERS ====================
+    function fmtEUR(n, digits = 2) {
+      if (n == null || isNaN(n)) return "—";
+      return new Intl.NumberFormat('fr-FR', {
+        style: 'currency',
+        currency: 'EUR',
+        maximumFractionDigits: digits
+      }).format(n);
+    }
+
+    function getGreeting() {
+      const h = new Date().getHours();
+      if (h < 6) return "Bonne nuit 🌙";
+      if (h < 12) return "Bonjour ☀️";
+      if (h < 18) return "Bon après-midi 🌤";
+      return "Bonsoir 🌅";
+    }
+
+    // ==================== GLOBAL INTERACTIVE SYNC ====================
+    let isSyncing = false;
+    function triggerGlobalSync() {
+      if (isSyncing) return;
+      isSyncing = true;
+      const indicator = document.getElementById('sync-indicator');
+      const icon = document.getElementById('sync-icon');
+      const btnText = document.querySelector('#sync-button span:not(#sync-icon)');
+
+      indicator.textContent = "Sync en cours...";
+      indicator.classList.remove('hidden');
+      icon.classList.add('animate-spin');
+      if (btnText) btnText.textContent = "Sync...";
+
+      setTimeout(() => {
+        // Complete sync simulator
+        isSyncing = false;
+        icon.classList.remove('animate-spin');
+        indicator.textContent = "✓ Sync terminée";
+        if (btnText) btnText.textContent = "Synchroniser";
+        
+        // Randomly simulate small market fluctuation for realism
+        state.investments.forEach(inv => {
+          const delta = (Math.random() - 0.5) * 0.02; // max 2% change
+          inv.current_price = parseFloat((inv.current_price * (1 + delta)).toFixed(2));
+          inv.last_synced = new Date().toISOString();
+        });
+
+        // Add today's networth as history point if not present
+        recalculateDerivedData();
+        saveState();
+
+        if (activeTab === 'dashboard') renderDashboard();
+        if (activeTab === 'investments') renderInvestmentsPage();
+
+        setTimeout(() => {
+          indicator.classList.add('hidden');
+        }, 3000);
+      }, 1500);
+    }
+
+    // ==================== MARKET TICKER SIMULATION ====================
+    let marketData = [
+      { name: "S&P 500", symbol: "^GSPC", price: 5432.10, change_pct: 0.42, region: "US" },
+      { name: "CAC 40", symbol: "^FCHI", price: 7622.45, change_pct: -0.18, region: "FR" },
+      { name: "Nasdaq 100", symbol: "^NDX", price: 19680.12, change_pct: 1.12, region: "US" },
+      { name: "Bitcoin", symbol: "BTC-EUR", price: 61250, change_pct: 2.45, region: "CRYPTO" },
+      { name: "EUR/USD", symbol: "EURUSD=X", price: 1.0745, change_pct: -0.05, region: "FX" }
+    ];
+
+    function refreshMarketIndices() {
+      const refreshIcon = document.getElementById('market-refresh-icon');
+      refreshIcon.classList.add('animate-spin');
+      
+      setTimeout(() => {
+        refreshIcon.classList.remove('animate-spin');
+        // Random change
+        marketData.forEach(m => {
+          const delta = (Math.random() - 0.5) * 0.005;
+          m.price = parseFloat((m.price * (1 + delta)).toFixed(m.region === "FX" ? 4 : 2));
+          m.change_pct = parseFloat((m.change_pct + (Math.random() - 0.5) * 0.2).toFixed(2));
+        });
+        renderMarketWidget();
+      }, 800);
+    }
+
+    function renderMarketWidget() {
+      const container = document.getElementById('market-indices-grid');
+      if (!container) return;
+
+      const REGION_ICON = {
+        FR: "euro_symbol",
+        US: "attach_money",
+        CRYPTO: "currency_bitcoin",
+        FX: "currency_exchange"
+      };
+
+      container.innerHTML = marketData.map(idx => {
+        const isPos = idx.change_pct >= 0;
+        const color = isPos ? "text-primary" : "text-tertiary";
+        const valStr = idx.region === "FX" ? idx.price.toFixed(4) : idx.region === "CRYPTO" ? fmtEUR(idx.price, 0) : idx.price.toLocaleString('fr-FR');
+        
+        return `
+          <div class="p-3 bg-surface-container-high/40 rounded-sm border border-outline-variant/10">
+            <div class="flex items-center gap-1.5 mb-1">
+              <span class="material-symbols-outlined text-[12px] text-on-surface-variant">${REGION_ICON[idx.region] || "trending_up"}</span>
+              <span class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant truncate">${idx.name}</span>
+            </div>
+            <div class="font-data text-sm font-semibold text-on-surface truncate">
+              ${valStr}
+            </div>
+            <div class="text-[11px] font-bold mt-0.5 ${color}">
+              ${isPos ? "+" : ""}${idx.change_pct}%
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // ==================== RENDERS & ACTIONS ====================
+
+    // Common Alerts builder
+    function renderAlerts() {
+      const container = document.getElementById('dashboard-alerts');
+      if (!container) return;
+
+      const alerts = [];
+      if (state.isLargeDb) {
+        alerts.push({
+          severity: "warning",
+          icon: "warning",
+          message: "⚠️ Taille de base critique : La base SQLite locale dépasse 500 Mo. Pensez à vider l'historique dans les paramètres."
+        });
+      }
+
+      // Check upcoming subscription bills
+      const upcomingCount = state.subscriptions.filter(s => s.status === 'active' && s.billing_day === new Date().getDate()).length;
+      if (upcomingCount > 0) {
+        alerts.push({
+          severity: "info",
+          icon: "payments",
+          message: `Prélèvements aujourd'hui : Vous avez ${upcomingCount} abonnement(s) prélevé(s) ce jour.`
+        });
+      }
+
+      if (alerts.length > 0) {
+        container.innerHTML = alerts.map(a => `
+          <div class="flex items-center gap-3 p-3 rounded text-xs ${
+            a.severity === 'warning' ? 'bg-tertiary/10 border border-tertiary/20' : 'bg-primary/10 border border-primary/20'
+          }">
+            <span class="material-symbols-outlined text-[16px] ${a.severity === 'warning' ? 'text-tertiary' : 'text-primary'}">
+              ${a.icon}
+            </span>
+            <span class="text-on-surface">${a.message}</span>
+          </div>
+        `).join('');
+        container.classList.remove('hidden');
+      } else {
+        container.classList.add('hidden');
+      }
+    }
+
+    // --- TAB: DASHBOARD RENDERING ---
+    let allocationChart = null;
+    let performanceChart = null;
+
+    function renderDashboard() {
+      recalculateDerivedData();
+      renderAlerts();
+      renderMarketWidget();
+
+      // Heading greetings
+      document.getElementById('greeting-title').textContent = getGreeting();
+      
+      // Networth fluctuation badge
+      const varPct = 0.55;
+      const varAbs = totalNetWorth * (varPct / 100);
+      document.getElementById('patrimoine-variation-badge').innerHTML = `
+        +${fmtEUR(varAbs, 2)} (+${varPct}%) <span class="text-on-surface-variant font-normal">aujourd'hui</span>
+      `;
+
+      // Totals
+      document.getElementById('net-worth-value').textContent = fmtEUR(totalNetWorth, 0);
+      document.getElementById('accounts-total-kpi').textContent = fmtEUR(totalBank, 0);
+      document.getElementById('investments-total-kpi').textContent = fmtEUR(totalInvestments, 0);
+
+      document.getElementById('dashboard-pnl-pct').textContent = `${totalPnlPercent >= 0 ? '+' : ''}${totalPnlPercent.toFixed(1)}%`;
+      document.getElementById('dashboard-pnl-absolute').textContent = `${totalPnlAbsolute >= 0 ? '+' : ''}${fmtEUR(totalPnlAbsolute)}`;
+      
+      // Monthly subscriptions cost
+      const subMonthly = state.subscriptions
+        .filter(s => s.status === 'active')
+        .reduce((sum, s) => sum + (s.billing_cycle === 'yearly' ? s.amount / 12 : s.amount), 0);
+      const subCount = state.subscriptions.filter(s => s.status === 'active').length;
+      document.getElementById('dashboard-subs-monthly').innerHTML = `
+        ${fmtEUR(subMonthly)} <span class="text-[10px] text-on-surface-variant ml-1 font-sans font-normal">(${subCount} actifs)</span>
+      `;
+
+      // Allocation details
+      const pctBank = totalNetWorth > 0 ? ((totalBank / totalNetWorth) * 100).toFixed(1) : 0;
+      const pctInv = totalNetWorth > 0 ? ((totalInvestments / totalNetWorth) * 100).toFixed(1) : 0;
+      document.getElementById('allocation-pct-bank').textContent = `${pctBank}%`;
+      document.getElementById('allocation-pct-investments').textContent = `${pctInv}%`;
+
+      // 1. Render Allocation Donut Chart
+      if (allocationChart) allocationChart.destroy();
+      const ctxAlloc = document.getElementById('allocationChart').getContext('2d');
+      allocationChart = new Chart(ctxAlloc, {
+        type: 'doughnut',
+        data: {
+          labels: ['Comptes', 'Investissements'],
+          datasets: [{
+            data: [totalBank, totalInvestments],
+            backgroundColor: ['#4cd6fb', '#00b4d8'],
+            borderColor: '#061426',
+            borderWidth: 3
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: { enabled: true }
+          },
+          cutout: '70%'
+        }
+      });
+
+      // 2. Render Historical Performance Area Chart
+      if (performanceChart) performanceChart.destroy();
+      const ctxPerf = document.getElementById('performanceChart').getContext('2d');
+      const gradient = ctxPerf.createLinearGradient(0, 0, 0, 240);
+      gradient.addColorStop(0, 'rgba(76, 214, 251, 0.25)');
+      gradient.addColorStop(1, 'rgba(76, 214, 251, 0)');
+
+      // Merge historical data + current total
+      const histData = [...state.history, totalNetWorth];
+      const labels = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Ce mois'];
+
+      performanceChart = new Chart(ctxPerf, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Patrimoine',
+            data: histData,
+            borderColor: '#4cd6fb',
+            borderWidth: 2,
+            fill: true,
+            backgroundColor: gradient,
+            tension: 0.3,
+            pointRadius: 4,
+            pointBackgroundColor: '#4cd6fb'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: {
+              grid: { color: 'rgba(255,255,255,0.05)' },
+              ticks: { color: '#8ca3c7', font: { family: 'Plus Jakarta Sans', size: 9 } }
+            },
+            x: {
+              grid: { display: false },
+              ticks: { color: '#8ca3c7', font: { family: 'Plus Jakarta Sans', size: 9 } }
+            }
+          }
+        }
+      });
+
+      // 3. Render Top Holdings inside Dashboard table
+      const holdingsBody = document.getElementById('dashboard-holdings-body');
+      const topHoldings = [...state.investments]
+        .sort((a, b) => (b.quantity * b.current_price) - (a.quantity * a.current_price))
+        .slice(0, 4);
+
+      const ASSET_ICONS = { stock: "show_chart", etf: "donut_small", crypto: "currency_bitcoin", bond: "account_balance" };
+      
+      holdingsBody.innerHTML = topHoldings.map(inv => {
+        const val = inv.quantity * inv.current_price;
+        const pnl = (inv.current_price / inv.avg_buy_price - 1) * 100;
+        const isPos = pnl >= 0;
+        return `
+          <tr class="hover:bg-surface-container-high transition-colors">
+            <td class="px-6 py-4">
+              <div class="flex items-center gap-3">
+                <div class="w-7 h-7 rounded-sm bg-surface-container-highest flex items-center justify-center">
+                  <span class="material-symbols-outlined text-primary text-sm fill-icon">
+                    ${ASSET_ICONS[inv.asset_type] || "show_chart"}
+                  </span>
+                </div>
+                <span class="text-sm font-semibold truncate max-w-[140px]">${inv.name}</span>
+              </div>
+            </td>
+            <td class="px-6 py-4 text-xs font-mono text-on-surface-variant">${inv.ticker}</td>
+            <td class="px-6 py-4 text-sm font-data font-semibold text-right">${fmtEUR(val, 0)}</td>
+            <td class="px-6 py-4 text-xs font-bold text-right ${isPos ? 'text-primary' : 'text-tertiary'}">
+              ${isPos ? '+' : ''}${pnl.toFixed(1)}%
+            </td>
+          </tr>
+        `;
+      }).join('');
+
+      // 4. Render Upcoming subscriptions banner preview
+      const upcomingList = document.getElementById('upcoming-subs-list');
+      const today = new Date().getDate();
+      const next7DaysSubs = state.subscriptions
+        .filter(s => s.status === 'active')
+        .map(s => {
+          let days = s.billing_day - today;
+          if (days < 0) days += 30; // approx next month
+          return { ...s, days_until: days };
+        })
+        .filter(s => s.days_until >= 0 && s.days_until <= 7)
+        .sort((a, b) => a.days_until - b.days_until);
+
+      if (next7DaysSubs.length > 0) {
+        document.getElementById('upcoming-subs-card').classList.remove('hidden');
+        upcomingList.innerHTML = next7DaysSubs.map(s => `
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <div class="w-2 h-2 rounded-full" style="background: ${s.color}"></div>
+              <span class="text-xs text-on-surface">${s.name}</span>
+            </div>
+            <div class="text-right">
+              <span class="text-xs font-data font-semibold text-tertiary">${fmtEUR(s.amount)}</span>
+              <span class="text-[10px] text-on-surface-variant ml-2">J-${s.days_until}</span>
+            </div>
+          </div>
+        `).join('');
+      } else {
+        document.getElementById('upcoming-subs-card').classList.add('hidden');
+      }
+    }
+
+    // --- TAB: BANK ACCOUNTS RENDERING ---
+    function renderAccountsPage() {
+      recalculateDerivedData();
+      document.getElementById('accounts-page-total').textContent = fmtEUR(totalBank);
+
+      const grid = document.getElementById('accounts-grid');
+      const GC_PRETTY = {
+        SOCIETE_GENERALE_FR: { name: "Société Générale", color: "#E50914", icon: "account_balance" },
+        REVOLUT_LT: { name: "Revolut", color: "#ffffff", icon: "account_balance" },
+        TRADE_REPUBLIC_DE: { name: "Trade Republic Espèces", color: "#4cd6fb", icon: "wallet" },
+        manual: { name: "Compte Manuel", color: "#8ca3c7", icon: "edit_note" }
+      };
+
+      grid.innerHTML = state.accounts.map(acc => {
+        const uiConfig = GC_PRETTY[acc.institution] || { name: acc.institution, color: "#0071e3", icon: "account_balance" };
+        return `
+          <div class="glass overflow-hidden relative fade-up">
+            <div class="h-1 w-full" style="background: ${uiConfig.color}"></div>
+            <div class="p-6">
+              <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center gap-3">
+                  <div class="w-9 h-9 rounded-sm bg-surface-container flex items-center justify-center">
+                    <span class="material-symbols-outlined text-primary text-[18px] fill-icon">${uiConfig.icon}</span>
+                  </div>
+                  <div>
+                    <p class="text-sm font-bold text-on-surface">${acc.name}</p>
+                    <p class="text-[10px] text-on-surface-variant uppercase tracking-wider">${uiConfig.name}</p>
+                  </div>
+                </div>
+                <button onclick="deleteAccount('${acc.id}')"
+                        class="text-on-surface-variant hover:text-tertiary transition-colors"
+                        aria-label="Supprimer le compte">
+                  <span class="material-symbols-outlined text-[18px]">delete</span>
+                </button>
+              </div>
+
+              <!-- Interactive Inline Balance Editing -->
+              <div class="mb-4">
+                <span class="text-[10px] text-on-surface-variant uppercase tracking-wider">Solde</span>
+                <div class="flex items-center gap-2 mt-1">
+                  <input type="number" step="0.01" value="${acc.balance}" 
+                         onchange="updateAccountBalance('${acc.id}', this.value)"
+                         class="font-data text-2xl font-semibold bg-transparent border-b border-transparent focus:border-primary focus:bg-surface-container hover:bg-surface-container-high/40 px-2 py-0.5 rounded-sm w-44 text-on-surface focus:outline-none transition-colors">
+                  <span class="text-xs text-on-surface-variant">€</span>
+                </div>
+              </div>
+
+              <div class="flex items-center justify-between">
+                <span class="text-[10px] text-on-surface-variant">
+                  MAJ ${new Date(acc.last_synced).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                </span>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function updateAccountBalance(id, val) {
+      const parsed = parseFloat(val);
+      if (isNaN(parsed)) return;
+      const acc = state.accounts.find(a => a.id === id);
+      if (acc) {
+        acc.balance = parsed;
+        acc.last_synced = new Date().toISOString();
+        saveState();
+        recalculateDerivedData();
+        renderAccountsPage();
+      }
+    }
+
+    function deleteAccount(id) {
+      if (!confirm("Supprimer ce compte bancaire ?")) return;
+      state.accounts = state.accounts.filter(a => a.id !== id);
+      saveState();
+      recalculateDerivedData();
+      renderAccountsPage();
+    }
+
+    function submitManualAccount() {
+      const name = document.getElementById('manual-acc-name').value.trim();
+      const institution = document.getElementById('manual-acc-institution').value.trim();
+      const balance = parseFloat(document.getElementById('manual-acc-balance').value) || 0;
+      const type = document.getElementById('manual-acc-type').value;
+
+      if (!name) { alert("Le nom du compte est requis"); return; }
+
+      const newAcc = {
+        id: 'acc_' + Date.now(),
+        name: name,
+        institution: 'manual',
+        balance: balance,
+        account_type: type,
+        currency: 'EUR',
+        last_synced: new Date().toISOString()
+      };
+
+      state.accounts.push(newAcc);
+      saveState();
+      closeModal('modal-manual-account');
+      renderAccountsPage();
+
+      // Reset form
+      document.getElementById('manual-acc-name').value = '';
+      document.getElementById('manual-acc-institution').value = '';
+      document.getElementById('manual-acc-balance').value = '';
+    }
+
+    // --- GO CARDLESS SIMULATOR ENGINE ---
+    const MOCK_GC_BANKS = [
+      { id: "SOCIETE_GENERALE", name: "Société Générale", bic: "SOGEFR22" },
+      { id: "REVOLUT", name: "Revolut Bank", bic: "REVOUS22" },
+      { id: "BNP_PARIBAS", name: "BNP Paribas", bic: "BNPAFR22" },
+      { id: "BOURSORAMA", name: "BoursoBank", bic: "BOURFRPP" },
+      { id: "CREDIT_AGRICOLE", name: "Crédit Agricole", bic: "CAGRFR88" },
+      { id: "CREDIT_MUTUEL", name: "Crédit Mutuel", bic: "CREDMU55" }
+    ];
+
+    let gcSelectedBank = null;
+
+    function filterBankList() {
+      const q = document.getElementById('connect-query').value.trim().toLowerCase();
+      const country = document.getElementById('connect-country').value;
+      const listEl = document.getElementById('connect-banks-list');
+
+      // Simple mock filter
+      const filtered = MOCK_GC_BANKS.filter(b => b.name.toLowerCase().includes(q));
+
+      listEl.innerHTML = filtered.map(b => `
+        <button onclick="selectGcBank('${b.id}', '${b.name}')"
+                class="w-full flex items-center gap-3 px-3 py-2.5 rounded-sm text-left hover:bg-surface-container-high transition-colors">
+          <div class="w-8 h-8 rounded bg-surface-container flex items-center justify-center shrink-0">
+            <span class="material-symbols-outlined text-primary text-[16px]">account_balance</span>
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="text-sm font-medium text-on-surface truncate">${b.name}</p>
+            <p class="text-[10px] text-on-surface-variant font-mono">${b.bic}</p>
+          </div>
+          <span class="material-symbols-outlined text-on-surface-variant text-[16px] shrink-0">chevron_right</span>
+        </button>
+      `).join('');
+    }
+
+    function selectGcBank(id, name) {
+      gcSelectedBank = { id, name };
+      document.getElementById('selected-bank-name').textContent = name;
+      document.getElementById('connect-account-name').value = name + " Courant";
+      connectSetStep('name');
+    }
+
+    function connectSetStep(step) {
+      document.getElementById('connect-step-search').classList.add('hidden');
+      document.getElementById('connect-step-name').classList.add('hidden');
+      document.getElementById('connect-step-auth').classList.add('hidden');
+      document.getElementById('connect-step-confirm').classList.add('hidden');
+
+      document.getElementById(`connect-step-${step}`).classList.remove('hidden');
+
+      const stepTitles = {
+        search: "1 — Choisir sa banque",
+        name: "2 — Nommer le compte",
+        auth: "3 — Autoriser l'accès (Simulation)",
+        confirm: "4 — Finaliser la connexion"
+      };
+      document.getElementById('connect-step-title').textContent = stepTitles[step];
+    }
+
+    function executeBankOAuthRedirect() {
+      connectSetStep('auth');
+    }
+
+    function executeConfirmBankFlow() {
+      connectSetStep('confirm');
+    }
+
+    function submitConnectBankFlow() {
+      const customName = document.getElementById('connect-account-name').value.trim();
+      
+      const newAcc = {
+        id: 'acc_' + Date.now(),
+        name: customName || gcSelectedBank.name,
+        institution: gcSelectedBank.id === 'SOCIETE_GENERALE' ? 'SOCIETE_GENERALE_FR' : (gcSelectedBank.id === 'REVOLUT' ? 'REVOLUT_LT' : 'GC_SIMULATED'),
+        balance: Math.round(1000 + Math.random() * 4000), // Random starting balance
+        account_type: 'checking',
+        currency: 'EUR',
+        last_synced: new Date().toISOString()
+      };
+
+      state.accounts.push(newAcc);
+      saveState();
+      closeModal('modal-connect-bank');
+      recalculateDerivedData();
+      renderAccountsPage();
+      
+      // Reset flow
+      gcSelectedBank = null;
+      document.getElementById('connect-query').value = '';
+      connectSetStep('search');
+      filterBankList();
+    }
+
+    // --- TAB: INVESTMENTS RENDERING ---
+    function renderInvestmentsPage() {
+      recalculateDerivedData();
+      document.getElementById('investments-page-total').textContent = fmtEUR(totalInvestments);
+      document.getElementById('investments-page-invested').textContent = fmtEUR(investedCapital);
+      document.getElementById('investments-page-pnl-abs').textContent = `${totalPnlAbsolute >= 0 ? '+' : ''}${fmtEUR(totalPnlAbsolute)}`;
+      document.getElementById('investments-page-pnl-pct').textContent = `${totalPnlPercent >= 0 ? '+' : ''}${totalPnlPercent.toFixed(2)}%`;
+      
+      // P&L color logic
+      const pnlColorClass = totalPnlAbsolute >= 0 ? 'text-primary' : 'text-tertiary';
+      document.getElementById('investments-page-pnl-abs').className = `font-data text-xl font-semibold mt-1 ${pnlColorClass}`;
+      document.getElementById('investments-page-pnl-pct').className = `font-data text-xl font-semibold mt-1 ${pnlColorClass}`;
+
+      const tbody = document.getElementById('investments-table-body');
+      const ASSET_ICONS = { stock: "show_chart", etf: "donut_small", crypto: "currency_bitcoin", bond: "account_balance" };
+      const ASSET_LABELS = { stock: "Action", etf: "ETF", crypto: "Crypto", bond: "Obligation" };
+      const PLATFORMS = { trade_republic: "Trade Republic", revolut: "Revolut", manual: "Manuel" };
+
+      tbody.innerHTML = state.investments.map(inv => {
+        const val = inv.quantity * inv.current_price;
+        const pnlAbs = val - (inv.quantity * inv.avg_buy_price);
+        const pnlPct = (inv.current_price / inv.avg_buy_price - 1) * 100;
+        const isPos = pnlAbs >= 0;
+
+        return `
+          <tr class="hover:bg-surface-container-high transition-colors">
+            <td class="px-6 py-4">
+              <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-sm bg-surface-container-highest flex items-center justify-center shrink-0">
+                  <span class="material-symbols-outlined text-primary text-sm fill-icon">
+                    ${ASSET_ICONS[inv.asset_type] || "show_chart"}
+                  </span>
+                </div>
+                <div>
+                  <p class="text-sm font-semibold text-on-surface truncate max-w-[140px]">${inv.name}</p>
+                  <p class="text-[10px] text-on-surface-variant font-mono">${inv.isin || ASSET_LABELS[inv.asset_type]}</p>
+                </div>
+              </div>
+            </td>
+            <td class="px-6 py-4">
+              <span class="text-[10px] font-bold px-2 py-1 bg-surface-container rounded-sm text-on-surface-variant">
+                ${PLATFORMS[inv.platform] || inv.platform}
+              </span>
+            </td>
+            <td class="px-6 py-4 text-sm font-data text-right text-on-surface">${inv.quantity}</td>
+            <td class="px-6 py-4 text-sm font-data text-right text-on-surface-variant">${fmtEUR(inv.avg_buy_price)}</td>
+            <td class="px-6 py-4 text-sm font-data text-right text-on-surface">${fmtEUR(inv.current_price)}</td>
+            <td class="px-6 py-4 text-sm font-data font-semibold text-right text-on-surface">${fmtEUR(val)}</td>
+            <td class="px-6 py-4 text-right">
+              <span class="text-sm font-bold ${isPos ? 'text-primary' : 'text-tertiary'}">
+                ${isPos ? '+' : ''}${pnlPct.toFixed(2)}%
+              </span>
+              <br/>
+              <span class="text-[10px] font-data ${isPos ? 'text-primary/70' : 'text-tertiary/70'}">
+                ${isPos ? '+' : ''}${fmtEUR(pnlAbs)}
+              </span>
+            </td>
+            <td class="px-6 py-4 text-right">
+              <button onclick="deleteInvestment('${inv.id}')"
+                      class="text-on-surface-variant hover:text-tertiary transition-colors">
+                <span class="material-symbols-outlined text-[18px]">delete</span>
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function deleteInvestment(id) {
+      if (!confirm("Supprimer cette position d'investissement ?")) return;
+      state.investments = state.investments.filter(i => i.id !== id);
+      saveState();
+      recalculateDerivedData();
+      renderInvestmentsPage();
+    }
+
+    function submitInvestment() {
+      const platform = document.getElementById('invest-platform').value;
+      const type = document.getElementById('invest-type').value;
+      const name = document.getElementById('invest-name').value.trim();
+      const ticker = document.getElementById('invest-ticker').value.trim();
+      const isin = document.getElementById('invest-isin').value.trim();
+      const qty = parseFloat(document.getElementById('invest-qty').value) || 0;
+      const avg = parseFloat(document.getElementById('invest-avg-buy').value) || 0;
+      const current = parseFloat(document.getElementById('invest-current-price').value) || avg;
+
+      if (!name || !qty || !avg) {
+        alert("Nom, quantité, et prix d'achat sont obligatoires");
+        return;
+      }
+
+      const newInv = {
+        id: 'inv_' + Date.now(),
+        name,
+        ticker,
+        isin,
+        quantity: qty,
+        avg_buy_price: avg,
+        current_price: current,
+        asset_type: type,
+        platform,
+        last_synced: new Date().toISOString()
+      };
+
+      state.investments.push(newInv);
+      saveState();
+      closeModal('modal-add-holding');
+      renderInvestmentsPage();
+
+      // Reset
+      document.getElementById('invest-name').value = '';
+      document.getElementById('invest-ticker').value = '';
+      document.getElementById('invest-isin').value = '';
+      document.getElementById('invest-qty').value = '';
+      document.getElementById('invest-avg-buy').value = '';
+      document.getElementById('invest-current-price').value = '';
+    }
+
+    // --- TRADE REPUBLIC CONSOLE SYNC SIMULATOR ---
+    function triggerTRSyncSim() {
+      openModal('modal-tr-sync-console');
+      const logsEl = document.getElementById('sync-console-logs');
+      const progressEl = document.getElementById('sync-console-progress');
+      
+      logsEl.innerHTML = '';
+      progressEl.style.width = '0%';
+
+      const steps = [
+        { time: 0, text: "➜ Initialisation de la session locale...", pct: 10 },
+        { time: 800, text: "➜ Connexion aux passerelles sécurisées Trade Republic...", pct: 30 },
+        { time: 1800, text: "✉ OTP Requis. Envoi du SMS sur +33 6 ** ** ** 78...", pct: 50 },
+        { time: 2600, text: "✓ Code reçu par rappel WebSocket. Session 2FA autorisée.", pct: 70 },
+        { time: 3500, text: "✓ Récupération du relevé de compte de trading local...", pct: 85 },
+        { time: 4200, text: "✓ Sync active : Récupération des cours yfinance (MSCI World, Apple)...", pct: 95 },
+        { time: 5000, text: "✓ Sync complétée avec succès ! Mise à jour des cours effectuée.", pct: 100 }
+      ];
+
+      steps.forEach(s => {
+        setTimeout(() => {
+          const l = document.createElement('p');
+          l.textContent = `[${new Date().toLocaleTimeString()}] ${s.text}`;
+          if (s.text.startsWith('✓')) {
+            l.className = "text-primary";
+          } else if (s.text.startsWith('✉')) {
+            l.className = "text-yellow-500 font-semibold";
+          }
+          logsEl.appendChild(l);
+          logsEl.scrollTop = logsEl.scrollHeight;
+          progressEl.style.width = `${s.pct}%`;
+
+          if (s.pct === 100) {
+            setTimeout(() => {
+              closeModal('modal-tr-sync-console');
+              
+              // Apply small changes
+              state.investments.forEach(inv => {
+                if (inv.platform === 'trade_republic') {
+                  const factor = 1 + (Math.random() - 0.5) * 0.03;
+                  inv.current_price = parseFloat((inv.current_price * factor).toFixed(2));
+                  inv.last_synced = new Date().toISOString();
+                }
+              });
+              saveState();
+              renderInvestmentsPage();
+            }, 800);
+          }
+        }, s.time);
+      });
+    }
+
+
+    // --- TAB: SUBSCRIPTIONS RENDERING ---
+    let subActiveView = 'list'; // 'list' | 'calendar'
+    let undoSubRef = null;
+    let undoToastTimer = null;
+
+    function setSubView(view) {
+      subActiveView = view;
+      document.getElementById('sub-view-list-btn').className = view === 'list' ? 'flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold transition-all rounded bg-primary text-on-primary' : 'flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold transition-all rounded text-on-surface-variant hover:text-on-surface';
+      document.getElementById('sub-view-calendar-btn').className = view === 'calendar' ? 'flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold transition-all rounded bg-primary text-on-primary' : 'flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold transition-all rounded text-on-surface-variant hover:text-on-surface';
+
+      if (view === 'list') {
+        document.getElementById('sub-view-list').classList.remove('hidden');
+        document.getElementById('sub-view-calendar').classList.add('hidden');
+      } else {
+        document.getElementById('sub-view-list').classList.add('hidden');
+        document.getElementById('sub-view-calendar').classList.remove('hidden');
+      }
+      renderSubscriptionsPage();
+    }
+
+    function renderSubscriptionsPage() {
+      // 1. Build Sub KPIs
+      const activeSubs = state.subscriptions.filter(s => s.status === 'active');
+      const totalMonthly = activeSubs.reduce((sum, s) => sum + (s.billing_cycle === 'yearly' ? s.amount / 12 : s.amount), 0);
+      const totalYearly = totalMonthly * 12;
+      const countActive = activeSubs.length;
+      
+      // Potential savings is sum of active subscriptions in category streaming/sport/autre
+      const savings = activeSubs
+        .filter(s => ['streaming', 'autre'].includes(s.category))
+        .reduce((sum, s) => sum + (s.billing_cycle === 'yearly' ? s.amount / 12 : s.amount), 0);
+
+      const kpisGrid = document.getElementById('sub-kpis-grid');
+      const kpiData = [
+        { label: "Coût mensuel", value: fmtEUR(totalMonthly), icon: "calendar_month", color: "#0071e3" },
+        { label: "Coût annuel", value: fmtEUR(totalYearly), icon: "event_repeat", color: "#bf5af2" },
+        { label: "Abonnements actifs", value: countActive, icon: "check_circle", color: "#30d158" },
+        { label: "Économies potentielles", value: fmtEUR(savings), icon: "savings", color: "#ffd60a" }
+      ];
+
+      kpisGrid.innerHTML = kpiData.map(k => `
+        <div class="p-5 glass">
+          <div class="flex items-center gap-2 mb-3">
+            <div class="w-7 h-7 rounded-lg flex items-center justify-center" style="background: ${k.color}20">
+              <span class="material-symbols-outlined text-[15px]" style="color: ${k.color}">${k.icon}</span>
+            </div>
+            <span class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">${k.label}</span>
+          </div>
+          <div class="font-data text-xl font-bold" style="color: ${k.color}">${k.value}</div>
+        </div>
+      `).join('');
+
+      // 2. Upcoming Subscriptions sub-banner
+      const today = new Date().getDate();
+      const upcoming = state.subscriptions
+        .filter(s => s.status === 'active')
+        .map(s => {
+          let days = s.billing_day - today;
+          if (days < 0) days += 30;
+          return { ...s, days_until: days };
+        })
+        .filter(s => s.days_until <= 7)
+        .sort((a, b) => a.days_until - b.days_until);
+
+      const upcomingBanner = document.getElementById('sub-upcoming-banner');
+      const badgesContainer = document.getElementById('sub-upcoming-badges-container');
+      if (upcoming.length > 0) {
+        upcomingBanner.classList.remove('hidden');
+        badgesContainer.innerHTML = upcoming.map(s => `
+          <span class="text-xs px-3 py-1 rounded-full font-semibold"
+                style="background: ${s.color}22; color: ${s.color}; border: 1px solid ${s.color}33">
+            ${s.name} · ${fmtEUR(s.amount)} · J-${s.days_until}
+          </span>
+        `).join('');
+      } else {
+        upcomingBanner.classList.add('hidden');
+      }
+
+      // 3. Render List View or Calendar View
+      if (subActiveView === 'list') {
+        const tbody = document.getElementById('subscriptions-table-body');
+        
+        tbody.innerHTML = state.subscriptions.map(s => {
+          const isCancelled = s.status === 'cancelled';
+          const isPaused = s.status === 'paused';
+          
+          let statusBadgeText = "Actif";
+          let statusColorClass = "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20";
+          let statusIcon = "check_circle";
+          
+          if (isCancelled) {
+            statusBadgeText = "Annulé";
+            statusColorClass = "bg-tertiary/10 text-tertiary border border-tertiary/20";
+            statusIcon = "cancel";
+          } else if (isPaused) {
+            statusBadgeText = "Pausé";
+            statusColorClass = "bg-yellow-500/10 text-yellow-400 border border-yellow-500/20";
+            statusIcon = "pause_circle";
+          }
+
+          const upcomingDay = s.billing_day - today >= 0 ? s.billing_day - today : s.billing_day - today + 30;
+
+          return `
+            <tr class="hover:bg-white/[0.03] transition-colors ${isCancelled ? 'opacity-40' : isPaused ? 'opacity-70' : ''}">
+              <td class="px-6 py-4">
+                <div class="flex items-center gap-3">
+                  <div class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+                       style="background: ${s.color}20; border: 1px solid ${s.color}30">
+                    <div class="w-3 h-3 rounded-full" style="background: ${s.color}"></div>
+                  </div>
+                  <div>
+                    <p class="text-sm font-semibold text-on-surface ${isCancelled ? 'line-through' : ''}">${s.name}</p>
+                    <p class="text-[10px] text-on-surface-variant capitalize">${s.category}</p>
+                  </div>
+                </div>
+              </td>
+              <td class="px-6 py-4 font-data text-sm font-bold text-on-surface">${fmtEUR(s.amount)}</td>
+              <td class="px-6 py-4 text-xs text-on-surface-variant">
+                ${s.billing_cycle === 'monthly' ? 'Mensuel' : (s.billing_cycle === 'yearly' ? 'Annuel' : 'Hebdo')} · Jour ${s.billing_day}
+              </td>
+              <td class="px-6 py-4">
+                ${s.status === 'active' ? `
+                  <span class="text-xs font-semibold ${upcomingDay <= 7 ? 'text-yellow-500' : 'text-on-surface-variant'}">
+                    Jour ${s.billing_day} ${upcomingDay <= 7 ? `(⚡ J-${upcomingDay})` : ''}
+                  </span>
+                ` : '<span class="text-[10px] text-on-surface-variant/50">—</span>'}
+              </td>
+              <td class="px-6 py-4">
+                <button onclick="cycleSubStatus('${s.id}')"
+                        class="flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1 rounded-full transition-all hover:scale-105 active:scale-95 ${statusColorClass}">
+                  <span class="material-symbols-outlined text-[12px]">${statusIcon}</span>
+                  ${statusBadgeText}
+                </button>
+              </td>
+              <td class="px-6 py-4">
+                <button onclick="triggerSubDelete('${s.id}')"
+                        class="w-8 h-8 flex items-center justify-center rounded-lg text-on-surface-variant hover:text-tertiary hover:bg-tertiary/10 transition-all">
+                  <span class="material-symbols-outlined text-[18px]">delete</span>
+                </button>
+              </td>
+            </tr>
+          `;
+        }).join('');
+      } else {
+        // Calendar Timeline builder
+        const calendarContainer = document.getElementById('subscriptions-calendar-list');
+        const activeSubList = state.subscriptions.filter(s => s.status === 'active');
+        
+        if (activeSubList.length === 0) {
+          calendarContainer.innerHTML = `
+            <div class="text-center py-20 text-on-surface-variant">
+              <span class="material-symbols-outlined text-4xl mb-3 block text-outline">calendar_month</span>
+              <p class="text-sm font-semibold">Aucun prélèvement actif</p>
+            </div>
+          `;
+          return;
+        }
+
+        // Project bills next 30 days
+        const bills = [];
+        const currentYear = new Date().getFullYear();
+        const currentMonth = new Date().getMonth();
+
+        for (let i = 0; i < 30; i++) {
+          const dateObj = new Date();
+          dateObj.setDate(today + i);
+          const day = dateObj.getDate();
+          
+          // Find matching subs
+          const matched = activeSubList.filter(s => s.billing_day === day);
+          if (matched.length > 0) {
+            bills.push({
+              date: dateObj,
+              dayLabel: dateObj.toLocaleDateString('fr-FR', { weekday: 'short', day: '2-digit', month: 'short' }),
+              items: matched
+            });
+          }
+        }
+
+        calendarContainer.innerHTML = bills.map(b => {
+          const dayTotal = b.items.reduce((sum, item) => sum + item.amount, 0);
+          return `
+            <div class="flex gap-4 items-start group">
+              <!-- Date Column -->
+              <div class="w-24 shrink-0 text-right pt-2.5">
+                <p class="text-[11px] font-bold text-on-surface capitalize">${b.dayLabel}</p>
+              </div>
+
+              <!-- Timeline axis node -->
+              <div class="flex flex-col items-center pt-3.5 shrink-0">
+                <div class="w-2.5 h-2.5 rounded-full bg-primary"></div>
+                <div class="w-px flex-1 bg-outline/20 mt-1 mb-1" style="min-height: 20px"></div>
+              </div>
+
+              <!-- Badges list -->
+              <div class="flex-1 pb-3">
+                <div class="flex flex-wrap gap-2">
+                  ${b.items.map(item => `
+                    <div class="flex items-center gap-2 px-3 py-1.5 rounded-xl transition-all hover:scale-[1.02]"
+                         style="background: ${item.color}18; border: 1px solid ${item.color}30">
+                      <div class="w-2 h-2 rounded-full shrink-0" style="background: ${item.color}"></div>
+                      <span class="text-xs font-bold" style="color: ${item.color}">${item.name}</span>
+                      <span class="text-xs text-on-surface-variant">${fmtEUR(item.amount)}</span>
+                    </div>
+                  `).join('')}
+                  ${b.items.length > 1 ? `
+                    <div class="flex items-center px-3 py-1.5 rounded-xl text-xs text-on-surface-variant font-semibold bg-surface-container-high">
+                      Total : ${fmtEUR(dayTotal)}
+                    </div>
+                  ` : ''}
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+    }
+
+    function cycleSubStatus(id) {
+      const sub = state.subscriptions.find(s => s.id === id);
+      if (sub) {
+        const order = { active: 'paused', paused: 'cancelled', cancelled: 'active' };
+        sub.status = order[sub.status] || 'active';
+        saveState();
+        renderSubscriptionsPage();
+      }
+    }
+
+    // Toast deletion undo logic
+    let deletedSubBackup = null;
+    function triggerSubDelete(id) {
+      const sub = state.subscriptions.find(s => s.id === id);
+      if (!sub) return;
+
+      deletedSubBackup = { ...sub };
+      
+      // Temporarily filter out from state
+      state.subscriptions = state.subscriptions.filter(s => s.id !== id);
+      saveState();
+      renderSubscriptionsPage();
+
+      // Show toast
+      const toast = document.getElementById('undo-toast');
+      document.getElementById('toast-item-name').textContent = sub.name;
+      toast.classList.remove('hidden');
+      
+      const bar = document.getElementById('toast-progress-bar');
+      bar.style.width = '100%';
+
+      let elapsed = 0;
+      const DURATION = 5000;
+      const STEP = 50;
+
+      if (undoToastTimer) clearInterval(undoToastTimer);
+
+      undoToastTimer = setInterval(() => {
+        elapsed += STEP;
+        const pct = Math.max(0, 100 - (elapsed / DURATION) * 100);
+        bar.style.width = `${pct}%`;
+
+        if (pct <= 0) {
+          clearInterval(undoToastTimer);
+          toast.classList.add('hidden');
+          deletedSubBackup = null;
+        }
+      }, STEP);
+    }
+
+    function triggerUndoDeleteSub() {
+      if (deletedSubBackup) {
+        state.subscriptions.push(deletedSubBackup);
+        saveState();
+        deletedSubBackup = null;
+        
+        clearInterval(undoToastTimer);
+        document.getElementById('undo-toast').classList.add('hidden');
+        renderSubscriptionsPage();
+      }
+    }
+
+    function setSubColorForm(color) {
+      document.querySelectorAll('.color-dot').forEach(el => el.classList.remove('border-white', 'scale-110'));
+      const activeBtn = document.querySelector(`.color-dot[data-color="${color}"]`);
+      if (activeBtn) activeBtn.classList.add('border-white', 'scale-110');
+    }
+
+    function submitSubscription() {
+      const name = document.getElementById('sub-name').value.trim();
+      const amount = parseFloat(document.getElementById('sub-amount').value) || 0;
+      const day = parseInt(document.getElementById('sub-billing-day').value) || 1;
+      const cycle = document.getElementById('sub-cycle').value;
+      const category = document.getElementById('sub-category').value;
+      
+      const activeColorBtn = document.querySelector('.color-dot.border-white');
+      const color = activeColorBtn ? activeColorBtn.getAttribute('data-color') : "#4cd6fb";
+
+      if (!name || !amount) {
+        alert("Nom et montant de l'abonnement requis");
+        return;
+      }
+
+      const newSub = {
+        id: 'sub_' + Date.now(),
+        name,
+        amount,
+        billing_day: day,
+        billing_cycle: cycle,
+        category,
+        color,
+        status: 'active'
+      };
+
+      state.subscriptions.push(newSub);
+      saveState();
+      closeModal('modal-add-subscription');
+      renderSubscriptionsPage();
+
+      // Reset Form fields
+      document.getElementById('sub-name').value = '';
+      document.getElementById('sub-amount').value = '';
+      document.getElementById('sub-billing-day').value = '';
+    }
+
+    // --- TAB: FORECAST RENDERING ---
+    let forecastChart = null;
+
+    function initForecastPage() {
+      // Prefill Initial Capital input with Net Worth sum if empty
+      const capInput = document.getElementById('forecast-capital');
+      if (!capInput.value) {
+        capInput.value = Math.round(totalNetWorth);
+      }
+      renderForecastScenarios();
+      runForecastCalculation();
+    }
+
+    function updateForecastHorizonLabel() {
+      const yrs = document.getElementById('forecast-horizon').value;
+      document.getElementById('forecast-horizon-val').textContent = `${yrs} ans`;
+    }
+
+    function setForecastRate(rate) {
+      document.getElementById('forecast-rate').value = rate;
+      runForecastCalculation();
+    }
+
+    function prefillForecastFromInvestments() {
+      document.getElementById('forecast-capital').value = Math.round(totalInvestments);
+      runForecastCalculation();
+    }
+
+    // Compound curves calculator
+    function runForecastCalculation() {
+      const capital = parseFloat(document.getElementById('forecast-capital').value) || 0;
+      const apport = parseFloat(document.getElementById('forecast-apport').value) || 0;
+      const rate = parseFloat(document.getElementById('forecast-rate').value) || 0;
+      const years = parseInt(document.getElementById('forecast-horizon').value) || 10;
+
+      // Rate threshold warnings
+      const warningEl = document.getElementById('forecast-warning-rate');
+      if (rate > 15) {
+        warningEl.classList.remove('hidden');
+      } else {
+        warningEl.classList.add('hidden');
+      }
+
+      const rates = {
+        pessimistic: Math.max(0, rate - 3),
+        base: rate,
+        optimistic: rate + 3
+      };
+
+      const finalValues = {};
+      const datasetsData = { pessimistic: [], base: [], optimistic: [] };
+      const labels = [];
+
+      for (let y = 0; y <= years; y++) {
+        labels.push(y === 0 ? "Auj." : `${y}a`);
+        
+        Object.keys(rates).forEach(key => {
+          const r = rates[key] / 100 / 12; // monthly compounding rate
+          const n = y * 12;
+          let val = 0;
+          if (r === 0) {
+            val = capital + apport * n;
+          } else {
+            const comp = Math.pow(1 + r, n);
+            val = capital * comp + apport * (comp - 1) / r;
+          }
+          const vRound = Math.round(val);
+          datasetsData[key].push(vRound);
+          if (y === years) {
+            finalValues[key] = vRound;
+          }
+        });
+      }
+
+      // Display Final KPIs
+      document.getElementById('forecast-kpi-pessimistic').textContent = fmtEUR(finalValues.pessimistic, 0);
+      document.getElementById('forecast-kpi-base').textContent = fmtEUR(finalValues.base, 0);
+      document.getElementById('forecast-kpi-optimistic').textContent = fmtEUR(finalValues.optimistic, 0);
+
+      // Render Chart.js
+      if (forecastChart) forecastChart.destroy();
+      const ctx = document.getElementById('forecastChart').getContext('2d');
+
+      const datasets = [
+        {
+          label: `Pessimiste (${rates.pessimistic.toFixed(1)}%)`,
+          data: datasetsData.pessimistic,
+          borderColor: '#94a3b8',
+          borderWidth: 1.5,
+          tension: 0.1,
+          pointRadius: 0
+        },
+        {
+          label: `Base (${rates.base.toFixed(1)}%)`,
+          data: datasetsData.base,
+          borderColor: '#0071e3',
+          borderWidth: 2.5,
+          tension: 0.1,
+          pointRadius: 0
+        },
+        {
+          label: `Optimiste (${rates.optimistic.toFixed(1)}%)`,
+          data: datasetsData.optimistic,
+          borderColor: '#34d399',
+          borderWidth: 1.5,
+          tension: 0.1,
+          pointRadius: 0
+        }
+      ];
+
+      // Overlay Comparison lines if compared scenario active
+      if (comparedScenarioRef) {
+        const compRates = {
+          pessimistic: Math.max(0, comparedScenarioRef.taux_rendement - 3),
+          base: comparedScenarioRef.taux_rendement,
+          optimistic: comparedScenarioRef.taux_rendement + 3
+        };
+        const compData = { pessimistic: [], base: [], optimistic: [] };
+
+        for (let y = 0; y <= years; y++) {
+          Object.keys(compRates).forEach(key => {
+            const r = compRates[key] / 100 / 12;
+            const n = y * 12;
+            let val = 0;
+            if (r === 0) {
+              val = comparedScenarioRef.capital_initial + comparedScenarioRef.apport_mensuel * n;
+            } else {
+              const comp = Math.pow(1 + r, n);
+              val = comparedScenarioRef.capital_initial * comp + comparedScenarioRef.apport_mensuel * (comp - 1) / r;
+            }
+            compData[key].push(Math.round(val));
+          });
+        }
+
+        datasets.push(
+          {
+            label: `${comparedScenarioRef.name} - Pessimiste`,
+            data: compData.pessimistic,
+            borderColor: '#c4b5fd',
+            borderWidth: 1.5,
+            borderDash: [5, 5],
+            tension: 0.1,
+            pointRadius: 0
+          },
+          {
+            label: `${comparedScenarioRef.name} - Base`,
+            data: compData.base,
+            borderColor: '#a855f7',
+            borderWidth: 2,
+            borderDash: [5, 5],
+            tension: 0.1,
+            pointRadius: 0
+          },
+          {
+            label: `${comparedScenarioRef.name} - Optimiste`,
+            data: compData.optimistic,
+            borderColor: '#f0abfc',
+            borderWidth: 1.5,
+            borderDash: [5, 5],
+            tension: 0.1,
+            pointRadius: 0
+          }
+        );
+      }
+
+      forecastChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: datasets
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              labels: { color: '#8ca3c7', font: { family: 'Plus Jakarta Sans', size: 9 } }
+            }
+          },
+          scales: {
+            y: {
+              grid: { color: 'rgba(255,255,255,0.05)' },
+              ticks: {
+                color: '#8ca3c7',
+                font: { family: 'Plus Jakarta Sans', size: 9 },
+                callback: function(v) { return v >= 1000 ? (v/1000) + 'k €' : v + ' €'; }
+              }
+            },
+            x: {
+              grid: { display: false },
+              ticks: { color: '#8ca3c7', font: { family: 'Plus Jakarta Sans', size: 9 } }
+            }
+          }
+        }
+      });
+    }
+
+    function renderForecastScenarios() {
+      const container = document.getElementById('forecast-scenarios-list');
+      if (state.scenarios.length === 0) {
+        container.innerHTML = `<p class="text-[10px] text-on-surface-variant/60 text-center py-3">Aucun scénario sauvegardé</p>`;
+        return;
+      }
+
+      container.innerHTML = state.scenarios.map(s => {
+        const isCompared = comparedScenarioRef && comparedScenarioRef.id === s.id;
+        return `
+          <div class="flex items-center gap-2 px-3 py-2 rounded-sm border transition-colors ${
+            isCompared ? 'border-secondary/40 bg-secondary/10' : 'border-outline-variant/10 bg-surface-container'
+          }">
+            <div class="flex-1 min-w-0">
+              <p class="text-xs font-semibold text-on-surface truncate">${s.name}</p>
+              <p class="text-[9px] text-on-surface-variant">
+                ${fmtEUR(s.capital_initial, 0)} · ${s.taux_rendement}%/an · ${s.horizon_annees} ans
+              </p>
+            </div>
+            <button onclick="loadScenarioIntoForecast('${s.id}')" title="Charger" class="text-on-surface-variant hover:text-primary">
+              <span class="material-symbols-outlined text-[16px]">upload</span>
+            </button>
+            <button onclick="toggleScenarioComparison('${s.id}')" title="Comparer" class="${isCompared ? 'text-secondary' : 'text-on-surface-variant hover:text-secondary'}">
+              <span class="material-symbols-outlined text-[16px]">compare_arrows</span>
+            </button>
+            <button onclick="deleteScenario('${s.id}')" title="Supprimer" class="text-on-surface-variant hover:text-tertiary">
+              <span class="material-symbols-outlined text-[16px]">delete</span>
+            </button>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function loadScenarioIntoForecast(id) {
+      const s = state.scenarios.find(sc => sc.id === id);
+      if (s) {
+        document.getElementById('forecast-capital').value = s.capital_initial;
+        document.getElementById('forecast-apport').value = s.apport_mensuel;
+        document.getElementById('forecast-rate').value = s.taux_rendement;
+        document.getElementById('forecast-horizon').value = s.horizon_annees;
+        updateForecastHorizonLabel();
+        runForecastCalculation();
+      }
+    }
+
+    let comparedScenarioRef = null;
+    function toggleScenarioComparison(id) {
+      const s = state.scenarios.find(sc => sc.id === id);
+      if (comparedScenarioRef && comparedScenarioRef.id === id) {
+        clearForecastComparison();
+      } else {
+        comparedScenarioRef = s;
+        document.getElementById('forecast-comparison-label').textContent = `Comparaison : ${s.name}`;
+        document.getElementById('forecast-comparison-indicator').classList.remove('hidden');
+        renderForecastScenarios();
+        runForecastCalculation();
+      }
+    }
+
+    function clearForecastComparison() {
+      comparedScenarioRef = null;
+      document.getElementById('forecast-comparison-indicator').classList.add('hidden');
+      renderForecastScenarios();
+      runForecastCalculation();
+    }
+
+    function deleteScenario(id) {
+      if (comparedScenarioRef && comparedScenarioRef.id === id) {
+        clearForecastComparison();
+      }
+      state.scenarios = state.scenarios.filter(s => s.id !== id);
+      saveState();
+      renderForecastScenarios();
+    }
+
+    function submitSaveScenario() {
+      const name = document.getElementById('scenario-name').value.trim();
+      const cap = parseFloat(document.getElementById('forecast-capital').value) || 0;
+      const app = parseFloat(document.getElementById('forecast-apport').value) || 0;
+      const rate = parseFloat(document.getElementById('forecast-rate').value) || 0;
+      const yrs = parseInt(document.getElementById('forecast-horizon').value) || 10;
+
+      if (!name) { alert("Le nom du scénario est obligatoire"); return; }
+
+      const newScen = {
+        id: 'scen_' + Date.now(),
+        name,
+        capital_initial: cap,
+        apport_mensuel: app,
+        taux_rendement: rate,
+        horizon_annees: yrs
+      };
+
+      state.scenarios.push(newScen);
+      saveState();
+      closeModal('modal-save-scenario');
+      renderForecastScenarios();
+      
+      document.getElementById('scenario-name').value = '';
+    }
+
+
+    // --- TAB: PARAMETERS RENDERING ---
+    function renderSettingsPage() {
+      // 1. Load alerts states
+      const alertBox = document.getElementById('db-large-alert');
+      const sizeLabel = document.getElementById('settings-db-size-label');
+
+      if (state.isLargeDb) {
+        alertBox.classList.remove('hidden');
+        document.getElementById('alert-db-size').textContent = "512.4";
+        sizeLabel.textContent = "512.4 Mo";
+      } else {
+        alertBox.classList.add('hidden');
+        sizeLabel.textContent = "12.4 Mo";
+      }
+
+      // API Key
+      document.getElementById('settings-masked-key').textContent = state.apiKey.substring(0, 12) + "•••••••••••••••••" + state.apiKey.slice(-4);
+      document.getElementById('accounts-api-key').textContent = state.apiKey.substring(0, 12) + "•••••••••••••••••" + state.apiKey.slice(-4);
+
+      // Large DB Button Sync text
+      const dbBtn = document.getElementById('large-db-btn');
+      dbBtn.textContent = state.isLargeDb ? "Effacer Alerte" : "Simuler (>500 Mo)";
+    }
+
+    function regenerateDemoApiKey() {
+      const keys = [
+        'mt_live_f893e43cb3a2d21213c126d4a',
+        'mt_live_21bc34e3a479a9cc9901fb342',
+        'mt_live_d8a14b5c77ef10a28f4bc34a1'
+      ];
+      const nextKey = keys[Math.floor(Math.random() * keys.length)];
+      state.apiKey = nextKey;
+      saveState();
+      renderSettingsPage();
+      alert("Clé d'autorisation API régénérée et réappliquée au backend simulé.");
+    }
+
+    let dangerStep = 0;
+    function setDangerStep(step) {
+      dangerStep = step;
+      const box = document.getElementById('danger-zone-controls');
+
+      if (step === 0) {
+        box.innerHTML = `
+          <button onclick="setDangerStep(1)"
+                  class="px-4 py-2 text-sm font-semibold rounded-xl bg-tertiary/10 border border-tertiary/30 text-tertiary hover:bg-tertiary/20 hover:border-tertiary/60 transition-all duration-150">
+            Effacer toutes les données de démo
+          </button>
+        `;
+      } else if (step === 1) {
+        box.innerHTML = `
+          <div class="space-y-3 p-4 rounded-xl bg-tertiary/10 border border-tertiary/20">
+            <div class="flex items-start gap-2">
+              <span class="material-symbols-outlined text-tertiary text-[20px] mt-0.5">warning</span>
+              <div>
+                <p class="text-sm font-semibold text-red-300">Êtes-vous certain ?</p>
+                <p class="text-xs text-red-400/80 mt-1">
+                  Cette action réinitialisera toutes les données de simulation aux valeurs d'usine.
+                </p>
+              </div>
+            </div>
+            <div class="flex gap-2">
+              <button onclick="setDangerStep(0)" class="px-3 py-1.5 text-xs rounded-lg border border-outline-variant/30 text-on-surface-variant hover:text-on-surface transition-colors">Annuler</button>
+              <button onclick="setDangerStep(2)" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-tertiary text-white hover:bg-red-600 transition-colors">Continuer</button>
+            </div>
+          </div>
+        `;
+      } else if (step === 2) {
+        box.innerHTML = `
+          <div class="space-y-3 p-4 rounded-xl bg-tertiary/10 border border-tertiary/30">
+            <p class="text-sm text-red-300">Tapez <span class="font-mono font-bold text-red-200">RESET</span> pour valider la réinitialisation :</p>
+            <input type="text" id="danger-reset-input" oninput="checkDangerResetInput(this.value)" placeholder="RESET"
+                   class="w-full px-3 py-2 rounded-lg text-sm font-mono bg-surface-container border border-outline-variant/30 text-on-surface placeholder-on-surface-variant/50 focus:outline-none focus:border-tertiary transition-colors">
+            <div class="flex gap-2">
+              <button onclick="setDangerStep(0)" class="px-3 py-1.5 text-xs rounded-lg border border-outline-variant/30 text-on-surface-variant hover:text-on-surface transition-colors">Annuler</button>
+              <button id="danger-confirm-btn" onclick="executeFullFactoryReset()" disabled
+                      class="px-4 py-1.5 text-xs font-semibold rounded-lg bg-tertiary text-white disabled:opacity-40 disabled:cursor-not-allowed">
+                Réinitialiser définitivement
+              </button>
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    function checkDangerResetInput(val) {
+      const btn = document.getElementById('danger-confirm-btn');
+      if (btn) {
+        btn.disabled = val !== 'RESET';
+      }
+    }
+
+    function executeFullFactoryReset() {
+      localStorage.clear();
+      loadState();
+      setDangerStep(0);
+      switchTab('dashboard');
+      alert("Toutes les données ont été réinitialisées.");
+    }
+
+
+    // ==================== MODAL WINDOW TRIGGERS ====================
+    function openModal(id) {
+      document.getElementById(id).classList.remove('hidden');
+      if (id === 'modal-connect-bank') {
+        filterBankList();
+      }
+    }
+
+    function closeModal(id) {
+      document.getElementById(id).classList.add('hidden');
+    }
+
+    // --- INTERACTIVE ARCHITECTURE SYSTEM ---
+    const ARCHITECTURE_INFO = {
+      frontend: {
+        title: "Frontend Client (Vite + React)",
+        role: "Interface utilisateur moderne, responsive et local-first. Offre une expérience premium sans latence grâce à l'exécution 100% côté client des graphiques de prévision.",
+        tech: "React 18.3, Vite 5.4, Tailwind CSS, Recharts (visualisation).",
+        rules: "Pas de React Router (routage personnalisé basé sur le hash), appels API groupés dans src/api.js pour centraliser la sécurité, vérification d'état 'loading' | 'ready' | 'offline'.",
+        files: "App.jsx, src/api.js, src/pages/, src/components/"
+      },
+      backend: {
+        title: "Backend API (FastAPI)",
+        role: "Serveur asynchrone local exposant des API REST sécurisées. Il orchestre les requêtes de synchronisation des banques, des investissements et le cache des prix des actifs.",
+        tech: "Python 3.9+, FastAPI, APScheduler (tâches récurrentes en arrière-plan), slowapi (limitation de débit).",
+        rules: "Routes protégées par défaut via un middleware global. Mutex asynchrone d'acquisition de verrou de synchronisation pour éviter les écritures concurrentes SQLite.",
+        files: "main.py, config.py, routers/, services/sync.py"
+      },
+      database: {
+        title: "Base SQLite & Chiffrement AES-128",
+        role: "Stockage local-first unique dans un fichier SQLite chiffré. Respecte le principe de cloisonnement des données (aucun stockage cloud, confidentialité totale).",
+        tech: "SQLite 3, SQLAlchemy 2.x (ORM asynchrone), cryptography (Fernet AES-128), aiosqlite.",
+        rules: "Chiffrement au niveau des colonnes (Fernet) pour les données sensibles (IBAN, soldes, clés d'accès). Pas de migrations Alembic : la base est intègre et testée via PRAGMA au démarrage.",
+        files: "database.py, models.py, security.py, data/db.sqlite3"
+      },
+      keyring: {
+        title: "Keychain OS (keyring)",
+        role: "Sécurise les clés d'accès locales et secrets API (ex: identifiants Trade Republic ou clé de chiffrement Fernet locale) dans le trousseau d'accès natif du système d'exploitation.",
+        tech: "Bibliothèque Python keyring (keychain macOS / Windows Credential Manager).",
+        rules: "Ne jamais stocker de mots de passe ou secrets en clair dans les fichiers de configuration (.env, git). Fallback dégradé sécurisé si le keyring n'est pas disponible.",
+        files: "security.py, setup_secrets.py"
+      },
+      enablebanking: {
+        title: "Passerelle Enable Banking (ex-GoCardless)",
+        role: "Fournit une connexion directe et sécurisée (OAuth2 / DSP2) avec plus de 2500 institutions bancaires en Europe pour récupérer les soldes et historiques sans intermédiaire.",
+        tech: "Enable Banking API (migration en cours pour remplacer l'ancienne API gratuite GoCardless).",
+        rules: "Signature des requêtes via paire de clés RSA locales. Clés stockées sous ~/.config/money-tracker/enable_banking.key.",
+        files: "services/gocardless.py, routers/accounts.py"
+      },
+      traderepublic: {
+        title: "Client Trade Republic (pytr)",
+        role: "Liaison non-officielle avec Trade Republic pour récupérer l'état des portefeuilles d'investissements, ordres d'achat, et liquidités courantes.",
+        tech: "Bibliothèque Python pytr (protocole WebSocket officiel de TR).",
+        rules: "Authentification à double facteur (2FA) via SMS OTP. Enregistrement sécurisé du jeton de session dans le trousseau système.",
+        files: "services/trade_republic.py, routers/investments.py"
+      },
+      prices: {
+        title: "Enrichissement Prix (yfinance / CoinGecko)",
+        role: "Récupération des cotations boursières et des cours crypto en temps réel pour évaluer la valeur actuelle nette du portefeuille.",
+        tech: "Yahoo Finance API, CoinGecko Public API.",
+        rules: "Validation obligatoire des ISIN et tickers. Cache local de 15 minutes pour éviter d'être banni par les API (rate limiting). Protection contre les hausses/baisses anormales (>50%).",
+        files: "services/prices.py, routers/investments.py"
+      }
+    };
+
+    function selectArchitectureNode(nodeId) {
+      const info = ARCHITECTURE_INFO[nodeId];
+      if (!info) return;
+
+      // Update highlight in UI classes
+      document.querySelectorAll('.arch-node').forEach(el => {
+        el.classList.remove('border-primary', 'bg-primary/20', 'scale-[1.03]');
+        el.classList.add('border-outline-variant', 'bg-surface-container/60');
+      });
+      const activeEl = document.getElementById(`arch-node-${nodeId}`);
+      if (activeEl) {
+        activeEl.classList.remove('border-outline-variant', 'bg-surface-container/60');
+        activeEl.classList.add('border-primary', 'bg-primary/20', 'scale-[1.03]');
+      }
+
+      // Update details card values
+      document.getElementById('arch-details-title').textContent = info.title;
+      document.getElementById('arch-details-role').textContent = info.role;
+      document.getElementById('arch-details-tech').textContent = info.tech;
+      document.getElementById('arch-details-rules').textContent = info.rules;
+      document.getElementById('arch-details-files').textContent = info.files;
+    }
+
+    // --- PITCH DECK SLIDE MANAGER ---
+    let activeSlide = 1;
+    
+    function goToSlide(slideNum) {
+      if (slideNum < 1 || slideNum > 5) return;
+      activeSlide = slideNum;
+      
+      // Hide all slide contents
+      document.querySelectorAll('.slide-pane').forEach(el => el.classList.add('hidden'));
+      // Show target slide content
+      document.getElementById(`slide-content-${slideNum}`).classList.remove('hidden');
+      
+      // Update slide navigation buttons state
+      document.querySelectorAll('.slide-nav-btn').forEach(btn => {
+        btn.className = "slide-nav-btn px-3 py-1.5 rounded text-[10px] font-bold uppercase tracking-wider transition-all text-on-surface-variant hover:bg-surface-container-high border border-transparent";
+      });
+      const currentBtn = document.getElementById(`slide-btn-${slideNum}`);
+      if (currentBtn) {
+        currentBtn.className = "slide-nav-btn px-3 py-1.5 rounded text-[10px] font-bold uppercase tracking-wider transition-all bg-primary/20 text-primary border border-primary/30";
+      }
+      
+      // Update indicators and progress bar
+      document.getElementById('slide-indicator').textContent = `${slideNum} / 5`;
+      document.getElementById('slide-progress').style.width = `${slideNum * 20}%`;
+      
+      // Enable/disable navigation arrows
+      document.getElementById('slide-prev-btn').disabled = (slideNum === 1);
+      document.getElementById('slide-next-btn').disabled = (slideNum === 5);
+
+      // Trigger slide init details if needed
+      if (slideNum === 2) {
+        selectArchitectureNode('frontend');
+      } else if (slideNum === 3) {
+        encryptionActive = true;
+        updateEncryptionUI();
+      } else if (slideNum === 5) {
+        selectBmadPhase(1);
+      }
+    }
+
+    function nextSlide() {
+      if (activeSlide < 5) goToSlide(activeSlide + 1);
+    }
+
+    function prevSlide() {
+      if (activeSlide > 1) goToSlide(activeSlide - 1);
+    }
+
+    // --- SLIDE 3: ENCRYPTION SIMULATOR ---
+    let encryptionActive = true;
+
+    function toggleEncryptionSimulator() {
+      encryptionActive = !encryptionActive;
+      updateEncryptionUI();
+    }
+
+    function updateEncryptionUI() {
+      const toggle = document.getElementById('crypto-toggle');
+      const toggleDot = document.getElementById('crypto-toggle-dot');
+      const lockIcon = document.getElementById('db-lock-icon');
+      const statusTitle = document.getElementById('db-status-title');
+      const statusDesc = document.getElementById('db-status-desc');
+
+      // IBANs
+      const iban1 = document.getElementById('db-row-1-iban');
+      const iban2 = document.getElementById('db-row-2-iban');
+      // Balances
+      const bal1 = document.getElementById('db-row-1-balance');
+      const bal2 = document.getElementById('db-row-2-balance');
+
+      if (encryptionActive) {
+        // Toggle UI
+        toggleDot.className = "w-3.5 h-3.5 bg-primary rounded-full absolute right-0.5 top-0.5 transition-all duration-300";
+        toggle.className = "w-10 h-5 bg-primary/20 border border-primary/40 rounded-full p-0.5 transition-all duration-300 relative";
+        
+        // Locked state info
+        lockIcon.textContent = "lock";
+        lockIcon.className = "material-symbols-outlined text-secondary";
+        statusTitle.textContent = "État de la table : Chiffré de bout en bout";
+        statusDesc.textContent = "Les valeurs réelles ne sont visibles par aucun processus système autre que Money Tracker. En cas d'extraction brute du fichier db.sqlite3, le contenu reste totalement indéchiffrable.";
+
+        // Encrypted values
+        iban1.textContent = "gAAAAABmX3K...";
+        iban2.textContent = "gAAAAABmP2D...";
+        bal1.textContent = "gAAAAABmY8L...";
+        bal2.textContent = "gAAAAABmD9V...";
+        
+        iban1.className = "py-2.5 font-mono text-[9px] text-on-surface-variant/80";
+        iban2.className = "py-2.5 font-mono text-[9px] text-on-surface-variant/80";
+        bal1.className = "py-2.5 text-right font-mono text-[9px] text-primary/80";
+        bal2.className = "py-2.5 text-right font-mono text-[9px] text-primary/80";
+      } else {
+        // Toggle UI
+        toggleDot.className = "w-3.5 h-3.5 bg-on-surface-variant rounded-full absolute left-0.5 top-0.5 transition-all duration-300";
+        toggle.className = "w-10 h-5 bg-surface-container border border-outline-variant/40 rounded-full p-0.5 transition-all duration-300 relative";
+
+        // Unlocked state info
+        lockIcon.textContent = "lock_open";
+        lockIcon.className = "material-symbols-outlined text-emerald-400";
+        statusTitle.textContent = "État de la table : Décrypté en clair (Simulation)";
+        statusDesc.textContent = "Les accesseurs transparents SQLAlchemy déchiffrent les colonnes à la volée en mémoire lors des lectures en mémoire vive, offrant une utilisation simple côté code sans compromettre la sécurité au repos.";
+
+        // Decrypted values
+        iban1.textContent = "FR76 3000 4000 0001 2345 6789 012";
+        iban2.textContent = "FR76 1000 2000 0009 8765 4321 098";
+        bal1.textContent = "4 532,50 €";
+        bal2.textContent = "12 400,00 €";
+
+        iban1.className = "py-2.5 font-sans font-medium text-emerald-400 text-xs tracking-tight";
+        iban2.className = "py-2.5 font-sans font-medium text-emerald-400 text-xs tracking-tight";
+        bal1.className = "py-2.5 text-right font-sans font-bold text-emerald-400 text-xs";
+        bal2.className = "py-2.5 text-right font-sans font-bold text-emerald-400 text-xs";
+      }
+    }
+
+    // --- SLIDE 4: MUTEX & CONCURRENCY SIMULATOR ---
+    let isMutexSimRunning = false;
+
+    function runMutexSimulation() {
+      if (isMutexSimRunning) return;
+      isMutexSimRunning = true;
+
+      const simBtn = document.getElementById('btn-run-mutex-sim');
+      const badge = document.getElementById('mutex-lock-badge');
+      const taskA = document.getElementById('mutex-task-a');
+      const taskB = document.getElementById('mutex-task-b');
+      const statusA = document.getElementById('task-a-status');
+      const statusB = document.getElementById('task-b-status');
+      const barA = document.getElementById('task-a-bar');
+      const barB = document.getElementById('task-b-bar');
+
+      // Initialize
+      simBtn.disabled = true;
+      simBtn.className = "px-3 py-1.5 bg-outline-variant text-on-surface-variant font-bold text-[10px] uppercase tracking-wider rounded-sm cursor-not-allowed";
+      
+      taskA.style.opacity = "1";
+      taskB.style.opacity = "0.4";
+      statusA.textContent = "Acquisition du Lock...";
+      statusB.textContent = "Idle";
+      barA.style.width = "0%";
+      barB.style.width = "0%";
+
+      // Step 1: Task A gets Lock
+      setTimeout(() => {
+        badge.innerHTML = `<span class="material-symbols-outlined text-purple-400 text-[14px]">lock</span>
+                           <span class="text-purple-400 font-bold uppercase text-[9px]">Verrouillé par Tâche A</span>`;
+        statusA.textContent = "Verrou acquis. Téléchargement DSP2 (0%)...";
+        
+        // Progress Task A
+        let progressA = 0;
+        const intervalA = setInterval(() => {
+          progressA += 20;
+          barA.style.width = `${progressA}%`;
+          statusA.textContent = `Téléchargement DSP2 (${progressA}%)...`;
+          
+          if (progressA === 40) {
+            // Task B starts waiting
+            taskB.style.opacity = "1";
+            statusB.textContent = "En attente du Lock... ⏳";
+          }
+
+          if (progressA >= 100) {
+            clearInterval(intervalA);
+            statusA.textContent = "Écriture SQLite sécurisée...";
+            
+            // Step 2: Task A finishes and releases lock
+            setTimeout(() => {
+              statusA.innerHTML = "Terminé ✅";
+              taskA.style.opacity = "0.4";
+              
+              badge.innerHTML = `<span class="material-symbols-outlined text-emerald-400 text-[14px]">lock_open</span>
+                                 <span class="text-emerald-400 font-bold uppercase text-[9px]">Libre (Unlocked)</span>`;
+              
+              // Task B acquires lock immediately
+              setTimeout(() => {
+                badge.innerHTML = `<span class="material-symbols-outlined text-purple-400 text-[14px]">lock</span>
+                                   <span class="text-purple-400 font-bold uppercase text-[9px]">Verrouillé par Tâche B</span>`;
+                statusB.textContent = "Verrou acquis. Sync Trade Republic (0%)...";
+                
+                // Progress Task B
+                let progressB = 0;
+                const intervalB = setInterval(() => {
+                  progressB += 25;
+                  barB.style.width = `${progressB}%`;
+                  statusB.textContent = `Sync Trade Republic (${progressB}%)...`;
+                  
+                  if (progressB >= 100) {
+                    clearInterval(intervalB);
+                    statusB.textContent = "Écriture SQLite sécurisée...";
+                    
+                    // Complete simulation
+                    setTimeout(() => {
+                      statusB.innerHTML = "Terminé ✅";
+                      taskB.style.opacity = "0.4";
+                      badge.innerHTML = `<span class="material-symbols-outlined text-emerald-400 text-[14px]">lock_open</span>
+                                         <span class="text-emerald-400 font-bold uppercase text-[9px]">Libre (Unlocked)</span>`;
+                      
+                      simBtn.disabled = false;
+                      simBtn.className = "px-3 py-1.5 bg-primary text-on-primary font-bold text-[10px] uppercase tracking-wider rounded-sm active:scale-95 transition-all";
+                      isMutexSimRunning = false;
+                    }, 800);
+                  }
+                }, 400);
+
+              }, 500);
+            }, 800);
+          }
+        }, 400);
+
+      }, 600);
+    }
+
+    // --- SLIDE 5: BMAD DETAILS ---
+    const BMAD_DETAILS = {
+      1: {
+        title: "Phase 1 : PRD & Spécifications fonctionnelles strictes",
+        desc: "Avant d'écrire la première ligne de code, l'ensemble des règles de gestion financière, des calculs d'abonnements, de résilience locale et de synchronisation d'investissements ont été fixés dans un document de PRD. Cette préparation limite les hallucinations et garantit la cohérence du développement d'IA."
+      },
+      2: {
+        title: "Phase 2 : ADR (Architectural Decision Records) & Consensus technique",
+        desc: "Chaque choix technologique (Fernet pour le chiffrement SQLite local, keyring pour l'OS Keychain, slowapi pour la protection anti-DDOS locale) a fait l'objet d'une fiche ADR. Ces fiches valident les contraintes de sécurité et d'évolutivité avant l'implémentation."
+      },
+      3: {
+        title: "Phase 3 : Sprints & Epics (Plan de route par étapes)",
+        desc: "Le développement a été découpé en 7 Epics de sprint. Ce découpage permet une livraison incrémentale par blocs fonctionnels autonomes (ex: moteur de base -> authentification locale -> connecteurs réels -> prévisions de simulation)."
+      },
+      4: {
+        title: "Phase 4 : Boucle d'Exécution IA & Assurance Qualité locale",
+        desc: "L'agent d'IA autonome implémente les fonctionnalités en exécutant une suite de tests rigoureuse : vérification d'idempotence des scripts SQL, tests d'intégration en mémoire SQLite, et audit de sécurité des variables d'environnement."
+      }
+    };
+
+    function selectBmadPhase(phaseNum) {
+      document.querySelectorAll('.bmad-phase-card').forEach(card => {
+        card.className = "bmad-phase-card p-4 rounded-xl border border-outline-variant/20 bg-surface-container/30 cursor-pointer transition-all hover:scale-[1.02] space-y-2";
+      });
+      const activeCard = document.getElementById(`bmad-card-${phaseNum}`);
+      if (activeCard) {
+        activeCard.className = "bmad-phase-card p-4 rounded-xl border border-primary bg-primary/5 cursor-pointer transition-all hover:scale-[1.02] space-y-2";
+      }
+
+      // Update text details
+      const detail = BMAD_DETAILS[phaseNum];
+      document.getElementById('bmad-focus-title').textContent = detail.title;
+      document.getElementById('bmad-focus-desc').textContent = detail.desc;
+    }
+
+    // ==================== ON SYSTEM INIT ====================
+    window.onload = function() {
+      loadState();
+      if (state.isOffline) {
+        showOfflineScreen();
+      } else {
+        switchTab('dashboard');
+      }
+    };
+  </script>
+</body>
+</html>
