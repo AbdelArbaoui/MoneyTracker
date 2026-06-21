@@ -10,20 +10,6 @@
 
 ---
 
-## ⚡ ESPACE RECRUTEUR : Démo Instantanée (Zero-Setup)
-
-> [!TIP]
-> **Vous êtes en entretien ou vous examinez cette candidature ?**
-> Vous pouvez tester l'application immédiatement sans installer de dépendances (Python/Node) ni configurer de base de données.
->
-> 🚀 **Comment faire ?**
-> 1. Téléchargez ou clonez ce dépôt.
-> 2. Double-cliquez sur le fichier **[`demo.html`](demo.html)** dans votre explorateur de fichiers.
-> 3. L'application se lance dans votre navigateur avec un jeu de données complet simulé et persistant (`localStorage`).
-> 4. Rendez-vous sur l'onglet **"Architecture & bMAD"** pour suivre la présentation interactive intégrée !
-
----
-
 ## 🏗️ Architecture Technique (C4 Model)
 
 L'application est entièrement conçue autour du paradigme **Local-First** : aucune donnée financière ne transite par un serveur cloud externe, assurant une confidentialité absolue.
